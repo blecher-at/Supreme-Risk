@@ -24,35 +24,86 @@ function meter(m)
 	return m*0.0512
 end
 
+  
+function circleWalls(cdata)
+	local x = cdata.pos.x
+	local y = cdata.pos.y
+
+	local wd = baseSizeMeters;
+	local wallDistance = 1;
+	local yo = 4;
+	local xo = meter(wd)
+	while yo+wallDistance < xo do
+		xo = (math.sqrt(meter(wd)*meter(wd)-yo*yo))
+		createWall4("ARMY_9",x,y,xo,yo)
+		yo = yo+wallDistance
+	end
+	
+	xo = 4;
+	while xo < yo do
+		yo = (math.sqrt(meter(wd)*meter(wd)-xo*xo))
+		createWall4("ARMY_9",x,y,xo,yo)
+		xo = xo+wallDistance
+	end
+end 
+
+
+local tblGroup = nil;
+
 local countries = {
-    {
-		name='West Africa',
+	{	name='Iceland',
+		pos = {
+			x = 407, 
+			y = 330
+		},
+		owner = "ARMY_1",
+		walls = nil;
+	},
+	{	name='West Africa',
 		pos = {
 			x = meter(8700), 
 			y = meter(10300)
 		},
-		owner = "ARMY_1"
-  },
+		owner = "ARMY_1",
+		walls = circleWalls
+	},
   {
 		name='China',
 		pos = {
 			x = meter(4100), 
 			y = meter(2800)
 		},
-		owner = "ARMY_9"
+		owner = "ARMY_9",
+		walls = circleWalls
   }
   }
-  
-  
-
 
 local player = nil;
 
 function OnPopulate()
   LOG("AAA")
-  ScenarioUtils.InitializeArmies()
+  tblGroup = ScenarioUtils.InitializeArmies()
+  for i,acu in tblGroup do
+	LOG(i.." ")
+	for i2,acu2 in acu do
+		LOG(i2)
+	end
+  end
+  
   ScenarioFramework.SetPlayableArea('AREA_1' , false)
+  
+  -- Set Camera to show full Map
+  local Camera = import('/lua/SimCamera.lua').SimCamera
+  local cam = Camera("WorldCamera")
+--  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
+	cam:SetZoom(2000,0)
+
+	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
+
+  LOG("ONPOPULATE END")
 end
+
+
 
 function OnStart(self)
 --	PrintText("KAKAKAAK",20,'FFFFFFFF',20,'center')
@@ -77,12 +128,21 @@ function initStartUnits()
 	local yoffset = 6;
 	for i,cdata in countries do
 		-- Spawn one unit per country
-		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
+		setAsPresident(cdata, nil)
 --		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
 --		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x+2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
+		spawnCapital(cdata)
 --		spawnFactory(cdata)
 	end
 			
+end
+function spawnCapital(cdata)
+	cdata.factoryOwnershipChanged = false
+	spawnFactory(cdata)
+	
+	if cdata.walls != nil then
+		cdata:walls(cdata)
+	end
 end
 
 function spawnFactory(cdata)
@@ -105,22 +165,7 @@ function spawnFactory(cdata)
 	cdata.factory = u
 --	cdata.ownerId = armyId
 	
-	local wd = baseSizeMeters;
-	local wallDistance = 1;
-	local yo = 4;
-	local xo = meter(wd)
-	while yo+wallDistance < xo do
-		xo = (math.sqrt(meter(wd)*meter(wd)-yo*yo))
-		createWall4("ARMY_9",x,y,xo,yo)
-		yo = yo+wallDistance
-	end
-	
-	xo = 4;
-	while xo < yo do
-		yo = (math.sqrt(meter(wd)*meter(wd)-xo*xo))
-		createWall4("ARMY_9",x,y,xo,yo)
-		xo = xo+wallDistance
-	end
+
 	
 end
 
@@ -131,6 +176,8 @@ end
 function createWall(army,x,y)
 		local u = CreateUnitHPR('ueb5101', army, x,y,y, 0,0,0)
 		u:SetCanBeKilled(true)
+        u:CreateWreckageProp(0)
+        u:Destroy()
 	
 
 end
@@ -166,21 +213,46 @@ function presidentIsAlive(country)
 end
 
 function setAsPresident(country, unit)
-	LOG(country.name.." elected a new president")
-	country.president = unit
-	unit:SetCustomName("President of "..country.name)
 
-	-- stop unit from moving
-	unit:SetSpeedMult(0)
-	unit.OnMotionHorzEventChange = function() end
-	unit.OnMotionVertEventChange = function() end
-	unit.OnMotionTurnEventChange = function() end
-	unit.UpdateMovementEffectsOnMotionEventChange = function() end
-	
+	local x = country.pos.x-2
+	local y = country.pos.y+5
+	if not unit then
+		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
+		unit.isInitialPresident = true;
+	end
+
+	-- only alive units can be elected president
+	if not unit:IsBeingBuilt() and not unit:IsDead() then
+		LOG(country.name.." elected a new president")
+		country.president = unit
+		unit:SetCustomName("President of "..country.name)
+
+		-- stop unit from moving
+		unit:SetImmobile(true)
+		
+		-- only warp if not initial
+		if not unit.isInitialPresident then
+--	unit:SetSpeedMult(0)
+--	unit.OnMotionHorzEventChange = function() end
+--	unit.OnMotionVertEventChange = function() end
+--	unit.OnMotionTurnEventChange = function() end
+--	unit.UpdateMovementEffectsOnMotionEventChange = function() end
+	    unit:PlayUnitSound('TeleportStart')
+
+		for a, ccc in unit:GetOrientation() do LOG(a.." "..ccc) end
+		for a, ccc in unit:GetPosition() do LOG(a.." "..ccc) end
+		LOG(unit:GetOrientation())
+		
+		unit.TeleportDrain = nil
+		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
+		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
+--		Warp(unit,{country.pos.x,0,country.pos.y+6,0},{0,0,0,1})
+		end
+	end
 end
 
 function checkCountryOwnership()
-	local baseSizeInner = 0.6
+	local baseSizeInner = 0.9
 	for i,cdata in countries do
 		rect = {x0 = cdata.pos.x - meter(baseSizeMeters)*baseSizeInner,
 				x1 = cdata.pos.x + meter(baseSizeMeters)*baseSizeInner,
@@ -193,7 +265,7 @@ function checkCountryOwnership()
 		local armycounters = {}
 		if units then
 			for index,unit in units do
-				if not unit:IsDead() and unit:GetWeaponCount() > 0 then
+				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 then
 				
 --				LOG(unit:GetBlueprint())
 					if(armycounters[unit:GetArmy()]) then
