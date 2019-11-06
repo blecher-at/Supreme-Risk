@@ -6,6 +6,19 @@ RestrictedCategories=EXPERIMENTAL,MASSFABRICATION
 END
 --]]
 
+############################################################
+#               S U P R E M E   R I S K                    #
+############################################################
+#
+# A Supreme Commander Modification
+# Map and Scripting 
+# (C) 2007 Stephan Blecher (stephan@blecher.at)
+#
+# Use at your own risk and have lots of fun!
+# Version 8
+#
+############################################################
+
 
 
 --         local dis=VDist3(location, unit:GetPosition()) 
@@ -25,9 +38,10 @@ local executing = false
 local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
-local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
+local maxRoundIdleTime = 20; -- number of seconds from last round action to begin next round
 local idleWarnTime = 10; -- warn n seconds before end of round
 local roundnum = 0;
+local roundTotalTime = 0;
 
 local players = {};
 
@@ -72,14 +86,14 @@ function meter(m)
 	return m*0.0512
 end
 
-function Pos(x,y)
+function Pos(x,y,z)
+	if z == nil then z = 128 end
 	local p = {}
 	p[1] = x
 	p[3] = y
-	p[2] = 128
+	p[2] = z
 	return p
 end
-
   
 function circleWalls(cdata)
 	local x = cdata.pos.x
@@ -103,6 +117,50 @@ function circleWalls(cdata)
 	end
 end 
 
+local trees20 = {
+--	'/env/Evergreen/Props/Trees/Groups/DC01_group1_prop.bp',
+--	'/env/Evergreen/Props/Trees/Groups/DC01_group2_prop.bp',
+	'/env/Evergreen/Props/Trees/DC01_s2_prop.bp',
+	'/env/Evergreen/Props/Trees/DC01_s3_prop.bp',
+	'/env/Evergreen/Props/Trees/Oak01_s3_prop.bp',
+--	'/env/Evergreen/Props/Trees/Groups/Pine06_big_groupA_prop.bp',
+--	'/env/Evergreen/Props/Trees/Groups/Pine06_big_groupB_prop.bp',
+	'/env/Evergreen/Props/Trees/Pine06_V2_prop.bp',
+	'/env/Evergreen/Props/Trees/Pine07_s2_prop.bp'}
+
+function spawnTrees()
+
+    local sx,sy = GetMapSize()
+	local count = 100000
+	while count > 0 do
+		local px = math.random(0.0,sx)+math.random()
+		local py =  math.random(0.0,sy)+math.random()
+		-- determine whick prop to spawn
+        local pz = GetSurfaceHeight(px,py)
+        local pz2 = GetTerrainHeight(px,py) 
+		
+--		LOG(px.."/"..py.." => "..pz.." "..pz2)
+		
+--		local GetTerrainHeight(x,y)
+       if pz2 >4.4 and pz2 <8 then
+			-- only on land
+--			CreatePropHPR('DC01_s1_prop',proppos[1],surfaceY,proppos[3],0,0,0)
+			local proppos=Pos(px,py,pz)
+			
+			-- pine and stuff
+			if py > 300 and py < 450 or py > 560 and py < 750 then			
+				
+--				CreateProp(proppos,trees20[math.random(table.getn(trees20))])
+				CreatePropHPR(trees20[math.random(table.getn(trees20))], px,pz,py, math.random(),0,0)
+				
+			end
+		end
+		count = count -1
+	end
+
+				
+end
+
 
 local tblGroup = nil;
 
@@ -119,7 +177,7 @@ local continents =
 			{name='Ontario',				pos = {x = 200, y = 320}},		
 			{name='Quebec',					pos = {x = 282, y = 330}},		
 			{name='Northwest Territories',	pos = {x = 150, y = 285}},			
-			{name='Greenland',				pos = {x = 363, y = 303}},
+			{name='Greenland',				pos = {x = 362, y = 309}},
 		}
 	},
 	sa = {	name='South America',
@@ -128,12 +186,13 @@ local continents =
 			{name='Argentinia',				pos = {x = 290, y = 710}},
 			{name='Brasil',					pos = {x = 350, y = 590}},	
 			{name='Venezuela',				pos = {x = 250, y = 540}},	
+			{name='Peru',					pos = {x = 270, y = 592}},	
 		}
 	},
 	af = {	name='Africa',
 		ownerBonus = 3,
 		countries = {	
-			{name='West Africa',			pos = {x = meter(8700), y = meter(10300)},},
+			{name='West Africa',			pos = {x = 445, y = 525},},
 			{name='Egypt',					pos = {x = 530, y = 497}},
 			{name='Congo',					pos = {x = 522, y = 617}},
 			{name='South Africa',			pos = {x = 560, y = 700}},		
@@ -145,22 +204,43 @@ local continents =
 		name='Europe',
 		ownerBonus = 5,
 		countries = {
-			{name='Iceland',				pos = {x = 407, y = 330}},
+			{name='Iceland',				pos = {x = 407, y = 333}},
+			{name='Middle Europe',			pos = {x = 489, y = 390}},
+			{name='West Europe',			pos = {x = 460, y = 416}},
+			{name='Eastern Europe',			pos = {x = 540, y = 413}},
+			{name='Great Britain',			pos = {x = 448, y = 372}},
+			{name='Scandinavia',			pos = {x = 499, y = 335}},
+			{name='Ukraine',				pos = {x = 570, y = 328}},
+			
 		}
 	},
 	as = {
 		name='Asia',
 		ownerBonus = 7,
 		countries = {
-			{name='Kamchatka',				pos = {x = 920,	y = 305}},
-			{name='China',					pos = {x = 830, y = 490}},
+			{name='Kamchatka',				pos = {x = 912,	y = 315}},
+			{name='Sibiria',				pos = {x = 777,	y = 342}},
+			{name='Irkutsk',				pos = {x = 848,	y = 303}},
+			{name='Jakutia',				pos = {x = 841,	y = 355}},
+			{name='Mongolia',				pos = {x = 825,	y = 407}},
+			{name='Japan',					pos = {x = 950,	y = 458}},
+			{name='China',					pos = {x = 791, y = 460}},
+			{name='Ural',					pos = {x = 714, y = 330}},
+			{name='Afghanistan',			pos = {x = 694, y = 411}},
+			{name='Middle East',			pos = {x = 600, y = 454}},
+			{name='India',					pos = {x = 741, y = 518}},
+			{name='Siam',					pos = {x = 825, y = 516}},
 		}
 	},
 	au = {
 		name='Australia',
-		ownerBonus = 7,
+		ownerBonus = 2,
 		countries = {
-			{name='West Australia',			pos = {x = 890,	y = 725}},
+			{name='Western Australia',		pos = {x = 920,	y = 715}},
+			{name='Indonesia',				pos = {x = 883,	y = 608}},
+			{name='Queensland',				pos = {x = 965,	y = 690}},
+			{name='New Guinea',				pos = {x = 983,	y = 631}},
+			
 		}
 	}	
 }
@@ -199,8 +279,12 @@ local player = nil;
 function OnPopulate()
 	LOG("OnPopulate ----------------------------------")
 
+	-- spawn Trees
+--	spawnTrees()
+	
+	
 	-- prevent ACU warpin animation
-	ScenarioInfo.Options['PrebuiltUnits'] = nil
+--	ScenarioInfo.Options['PrebuiltUnits'] = nil
 
 	tblGroup = ScenarioUtils.InitializeArmies()
 
@@ -248,12 +332,10 @@ end
 ############ init ##############
 ################################
 function OnStart(self)
---	PrintText("KAKAKAAK",20,'FFFFFFFF',20,'center')
   LOG("OnStart -------------------------------")
   LOG("Hello world")
 
   init()
---  initFactories()
   initPlayers() 
   initCountryOwnership()
   initStartUnits() -- putting up units and countries
@@ -265,14 +347,27 @@ function OnStart(self)
 end
 
 function init()
+--	dump(ScenarioInfo)
+--var["Options"]["Victory"] = "demoralization"
+--var["Options"]["Victory"] = "eradication"
 	for index,army in ListArmies() do
 		LOG(index.." "..army.." is playing")
 		
 		#Building Restrictions
 		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
 		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
+		ScenarioFramework.RemoveRestriction(index, categories.ual0106)
+		ScenarioFramework.RemoveRestriction(index, categories.url0106)
 	end
 	
+end
+
+function getArmyByName(name)
+	for index,army in ListArmies() do
+		if army == name then
+			return index;
+		end
+	end
 end
 
 -- randomly distribute counties among players
@@ -323,16 +418,16 @@ function initStartUnits()
 				end
 			end
 		end
---		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x+2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
+	end			
+end
+
+function getPlayerByName(name)
+    for i, player in players do
+		if player.armyName == name then 
+			return player
+		end
 	end
-  	
-	local i = 0		
-	-- debug spawn some units
-	while i < 0 do
-	unit = CreateUnitHPR('uel0106', "ARMY_1",50,0,300, 0,0,0)
-	i = i+1
-	end
-			
+	return nil
 end
 
 function initPlayers()
@@ -360,6 +455,8 @@ function initPlayers()
 		player.acu.SRProduceUnit = onSRProduceUnit
 		player.acu.SRAddUnitResources = onSRAddUnitResources
 
+		player.resourceMultiplyer = player.acu:GetBlueprint().Economy.ProductionPerSecondMass
+		
 		-- enhancement stuff (disable all of them!)
         AddUnitEnhancement(player.acu,'dummy', 'Back')	
         AddUnitEnhancement(player.acu,'dummy', 'RCH')	
@@ -371,14 +468,40 @@ function initPlayers()
 
 		--brain
 		player.brain = GetArmyBrain(player.armyName)
-		player.brain.player = player -- callback!
+		player.brain.player = player -- callback ( useful for coding an AI later)
 		player.brain.CalculateScore = function(self)
 			return player.empireSize
 		end
 		
+		if not player.brain.OnOrigDefeat then
+			player.brain.OnOrigDefeat = player.brain.OnDefeat
+		end
+		player.brain.OnDefeat = onPlayerDefeat
+		
+		-- helper Functions for an AI or other scripts	
+		player.GetRoundIdleTime = function()	return roundIdleSeconds	end
+		player.GetContinents = 	  function()	return continents		end
+		
+		player.faction = GetFaction(player);
 		player.empireSize = 0;
 	end
 end
+
+function onPlayerDefeat(brain)
+	-- TODO: Spawn an AI here, for now just dieing is disabled
+	brain.player.isAI = true
+	
+	for ci,continent in continents do
+		continent.owners = {};
+		for i,cdata in continent.countries do		
+			if cdata.factory and cdata.owner == brain.player.armyName and not cdata.factory.onAI then
+				IssueBuildFactory({cdata.factory}, "uel0106",9999)
+				cdata.factory.onAI = true
+			end
+		end
+	end
+end
+
 
 function initPlayerResources()
 	checkCountryOwnership() -- initialize Country Ownerships
@@ -392,36 +515,44 @@ function initPlayerResources()
 end
 
 function initMissions()
-	addMissionContinent({continents.as, continents.sa})
-	addMissionContinent({continents.as, continents.af})
-	addMissionContinent({continents.na, continents.af})
-	addMissionContinent({continents.na, continents.au})	
-	addMissionContinent({continents.eu, continents.sa, 'any'}) -- these two and any third one
-	addMissionContinent({continents.eu, continents.au, 'any'}) -- these two and any third one
-	for i, player in players do
-		addMissionKill(player)
-	end
-	addMissionCountries(18,2) -- 2 units in 18 countries
-	addMissionCountries(24,1) -- 1 unit in 24 countries
-	
-	-- Assigning them to players now
-	for i, player in players do
-		while not player.mission do
-			local rm = missions[math.random(table.getn(missions))]
-			-- mission not yet given
-			if not rm.owner then
-				-- dont kill yourself as a mission
-				if not rm.target or rm.target != player then
-					rm.owner = player
-					player.mission = rm
-				end
-			end
+	if ScenarioInfo.Options.Victory == "eradication" then
+		for i, player in players do
+			player.mission = getMissionWD()
+			player.mission.owner = player
+		end
+	else
+		addMissionContinent({continents.as, continents.sa})
+		addMissionContinent({continents.as, continents.af})
+		addMissionContinent({continents.na, continents.af})
+		addMissionContinent({continents.na, continents.au})	
+		addMissionContinent({continents.eu, continents.sa, 'any'}) -- these two and any third one
+		addMissionContinent({continents.eu, continents.au, 'any'}) -- these two and any third one
+		for i, player in players do
+			addMissionKill(player)
+		end
+		if table.getn(players) > 2 then
+			addMissionCountries(18,2) -- 2 units in 18 countries
+			addMissionCountries(24,1) -- 1 unit in 24 countries
 		end
 		
-		local nn = GetArmyBrain(player.armyName).Nickname
-		LOG(nn..": "..player.mission:getText())
+		-- Assigning them to players now
+		for i, player in players do
+			while not player.mission do
+				local rm = missions[math.random(table.getn(missions))]
+				-- mission not yet given
+				if not rm.owner then
+					-- dont kill yourself as a mission
+					if not rm.target or not IsAlly(rm.target.index, player.index) then
+						rm.owner = player
+						player.mission = rm
+					end
+				end
+			end
+			
+			local nn = GetArmyBrain(player.armyName).Nickname
+--DEUBG		LOG(nn..": "..player.mission:getText())
+		end
 	end
-	
 --	        player.objective = GetArmyBrain(player.armyName).Nickname..": Objective"
 	--	LOG("Faction: "..GetFaction(player).SoundPrefix)
 	
@@ -457,7 +588,7 @@ function addMissionContinent(cc)
 				-- check number first
 				continentCount = 0
 				for i, continent in continents do
-					if continent.owner == self.owner.armyName then
+					if checkContinentOwn(continent, self.owner) then
 						continentCount = continentCount + 1
 					end
 				end
@@ -466,7 +597,7 @@ function addMissionContinent(cc)
 				end
 			
 				for i, continent in self.reqContinents do
-					if continent != 'any' and continent.owner != self.owner.armyName then
+					if continent != 'any' and not checkContinentOwn(continent, self.owner) then
 						return false
 					end
 				end
@@ -539,6 +670,30 @@ function addMissionKill(player)
 end
 
 
+function getMissionWD()
+	local mission = Class() {
+		icon='kill',
+		owner = false,
+		check = function (self)
+			if self.owner then
+				for i, player in players do
+					if not IsAlly(player.index, self.owner.index) and not player.acu:IsDead() then return false 
+					end
+				end
+				return true
+			else
+				return false
+			end
+		end,
+		getText = function(self)
+			return "Dominate the world. Eliminate all enemies"
+		end
+		
+	}
+	return mission
+end
+
+
 function GetFaction(player)
 	return Factions[GetArmyBrain(player.armyName):GetFactionIndex()]
 end
@@ -563,15 +718,31 @@ function spawnCapital(cdata)
 	if cdata.walls != nil then
 		cdata:walls(cdata)
 	end
+	
+	if cdata.props != nil then
+		cdata:props()
+	end
 end
+
+
 
 function spawnFactory(cdata)
 	local x = cdata.pos.x
 	local y = cdata.pos.y
 	local name = cdata.name
 	local army = cdata.owner
-	local u = CreateUnitHPR( 'ueb0101', army, x,y,y, 0,0,0)
+	local name = 'ueb0101'
+	
+--	if GetArmyBrain(cdata.owner):GetFactionIndex() == 2 then
+--		name = 'uab0101';
+--	end
+--	if GetArmyBrain(cdata.owner):GetFactionIndex() == 3 then
+--		name = 'urb0101';
+--	end
+	
+	local u = CreateUnitHPR(name, army, x,y,y, 0,0,0)
 
+	
 	u.CreateWreckage = function() end
 
 	u:SetAllWeaponsEnabled(false)		
@@ -595,7 +766,7 @@ function spawnFactory(cdata)
 		unit.TeleportDrain = nil
 --		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
 		unit.InitiateTeleportThread = myInitiateTeleportThread
-		local x = unit:GetNavigator():GetGoalPos()[1]+2.5;
+		local x = unit:GetNavigator():GetGoalPos()[1]+3;
 		local y = unit:GetNavigator():GetGoalPos()[3];
 		
 		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
@@ -616,7 +787,7 @@ function spawnFactory(cdata)
 			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
 		else
---			LOG("Build limit reached")
+			--LOG("Build limit reached in Factory")
 --			WaitTicks(50)
 			unitBeingBuilt:Kill()
 		end
@@ -688,7 +859,7 @@ end
 function setAsPresident(country, unit)
 
 	local x = country.pos.x-3
-	local y = country.pos.y+2
+	local y = country.pos.y+5
 	if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
@@ -766,7 +937,7 @@ function myInitiateTeleportThread(self, teleporter, location, orientation)
     self.UnitBeingTeleported = nil
     self.TeleportThread = nil
 
-	LOG("Teleport done")
+--debug	LOG("Teleport done")
 	if self.targetRally then
 		IssueMove( {self}, self.targetRally )
 	end
@@ -799,12 +970,12 @@ function checkTeleportationZones()
 --						dump(unit:GetNavigator():GetGoalPos())
 						-- store original Waypoint
 						unit.originalWaypoint = unit:GetNavigator():GetGoalPos()
-						dump(unit:GetNavigator():GetCurrentTargetPos())
+--						dump(unit:GetNavigator():GetCurrentTargetPos())
 					
 						-- redirect to teleport zone
 						--unit:GetNavigator():SetGoal(zone.teleporterSource)
 						--IssueStop({unit})
-						LOG("WP status: "..unit:GetNavigator():GetStatus())
+--						LOG("WP status: "..unit:GetNavigator():GetStatus())
 						unit:GetNavigator():SetGoal(zone.teleporterSource)
 --						unit:GetNavigator():SetSpeedThroughGoal(zone.teleporterSource)
 						 
@@ -832,7 +1003,7 @@ function checkTeleportationZones()
 --					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3]+zone.tpoffset)
 --					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3])
 
-					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
+#					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
 --					if unit:CanPathTo(teleportPos) then 
 
 					--fix ferry bug with transports?
@@ -911,8 +1082,13 @@ function checkCountryOwnership()
 	end
 	
 	for ci,continent in continents do
-		continent.owner = nil;
+		continent.owners = {};
 		for i,cdata in continent.countries do		
+		
+			if roundTotalTime == 0 then
+				cdata.conqueredThisRound = false
+			end
+			
 			rect = {x0 = cdata.pos.x - meter(baseSizeMeters)*baseSizeInner,
 					x1 = cdata.pos.x + meter(baseSizeMeters)*baseSizeInner,
 					y0 = cdata.pos.y - meter(baseSizeMeters)*baseSizeInner,
@@ -920,6 +1096,7 @@ function checkCountryOwnership()
 					}
 					
 			local units = GetUnitsInRect(rect)
+			local currentOwnerIndex = getPlayerByName(cdata.owner).index
 			
 			local armycounters = {}
 			if units then
@@ -939,8 +1116,9 @@ function checkCountryOwnership()
 						end
 						
 						
-						if(getArmyName(unit) == cdata.owner) then
-							-- own unit
+						currentOwnerIndex = getPlayerByName(cdata.owner).index
+						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
+							-- own or allied unit
 							unit:SetSpeedMult(8) -- reset for successful liberators
 							unit:SetAccMult(5)
 							unit:SetTurnMult(5)
@@ -951,13 +1129,55 @@ function checkCountryOwnership()
 							weapon:ChangeMaxRadius(meter(baseSizeMeters)*baseSizeInner*0.8)
 							weapon:SetFiringRandomness(1.2)
 						
-							if cdata.president != unit then
+							-- HOME BASES (Have units stay there for a while, and only move one territory per round), init at the beginning of the round
+							if not unit.homebase or roundTotalTime == 0 or cdata.conqueredThisRound then
+								unit.homebase = cdata
+							end
+							
+							if cdata.president != unit and unit.homebase == cdata then
 								--unit:SetCustomName("") --Citizen of "..cdata.name)
+--								unit:SetImmobile(false)
+								unit:SetCustomName("Citizen of "..cdata.name)
+								unit.isResting = false;
+								unit:SetImmobile(false)
+							else
+--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
+								
+								if cdata.president != unit then
+--									unit:SetSpeedMult(0) -- dont move a lot anymore
+									unit:SetImmobile(true)
+									if not unit.isResting then
+										unit.TeleportDrain = nil
+--									unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
+										unit.InitiateTeleportThread = myInitiateTeleportThread
+										if not cdata.restingpos or cdata.restingpos > 20 then
+											cdata.restingpos = 0
+										else
+											cdata.restingpos = cdata.restingpos + 1
+										end
+										
+										if cdata.restingpos>10 then
+											unit:OnTeleportUnit(unit, {cdata.pos.x-15+cdata.restingpos,0,cdata.pos.y-6},{0,0,0,1})
+										else
+											unit:OnTeleportUnit(unit, {cdata.pos.x-5+cdata.restingpos,0,cdata.pos.y-4},{0,0,0,1})										
+										end
+										if cdata.restingpos == 0 then
+											unit:SetCustomName("resting - moving next round again") --Citizen of "..cdata.name)
+										else
+											unit:SetCustomName("resting") --Citizen of "..cdata.name)
+										end
+										unit.isResting = true;
+									end
+								end
+								
 							end
 							
 							if not presidentIsAlive(cdata) then
 								setAsPresident(cdata, unit)
 							end
+							
+
+							
 						else
 							-- enemy unit
 							weapon:SetFiringRandomness(1.4)
@@ -973,8 +1193,8 @@ function checkCountryOwnership()
 			local friendlyUnits = 0;
 			for index, counter in armycounters do
 				--LOG("player "..index.." "..getArmyName(index)..": "..counter.." found in "..cdata.name.." ("..cdata.owner..")");
-				if getArmyName(index) == cdata.owner then
-					friendlyUnits = counter
+				if currentOwnerIndex and IsAlly(index,currentOwnerIndex) then
+					friendlyUnits = friendlyUnits + counter
 					cdata.friendlyUnits = friendlyUnits
 				else
 					enemyUnits = enemyUnits +counter
@@ -982,16 +1202,19 @@ function checkCountryOwnership()
 					enemyArmyId = index
 				end
 		    end
+			
 			if enemyUnits > 0 then
 				-- kill factory
-				if false and cdata.factory then --- commented out, factory is untargetable now
+				if cdata.factory then
 					cdata.factory:SetCanBeKilled(true)
 					cdata.factory:Kill()
+					cdata.factory=nil
 				end
-				setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
+--				setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
+				cdata.isAttacked = true
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
-			
+				cdata.isAttacked = false
 			end
 
 			if friendlyUnits == 0 and enemyUnits > 0 then
@@ -1000,19 +1223,24 @@ function checkCountryOwnership()
 				spawnRandomCard(players[enemyArmyId]) -- spawn card for player
 				cdata.owner = enemyArmy				
 				cdata.factoryOwnershipChanged = true;
+				cdata.conqueredThisRound = true;
 			end
 			if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
 				cdata.owner = "ARMY_9"
 				cdata.factoryOwnershipChanged = true;
-			
+				cdata.conqueredThisRound = true;			
 			end
 			
-			if continent.owner == nil or continent.owner == cdata.owner then
-				continent.owner = cdata.owner
+			-- update
+			currentOwnerIndex = getArmyByName(cdata.owner)
+
+			-- Continent Ownership
+			if not continent.owners[currentOwnerIndex] then 
+				continent.owners[currentOwnerIndex] = 1
 			else
-				continent.owner = false
+				continent.owners[currentOwnerIndex] = continent.owners[currentOwnerIndex] +1;
 			end
-					
+			
 			-- update Empire Size
 			for i, player in players do
 				if player.armyName == cdata.owner then
@@ -1033,20 +1261,28 @@ function setFactoryName(country, text)
 
 end
 
+function respawnFactory(c)
+	if c.factory != nil then
+		local f = c.factory
+		c.factory = nil;
+		f:SetCanBeKilled(true)
+		if not f:IsDead() then f:Kill() end
+		WaitSeconds(3)
+	end
+	
+	WaitSeconds(2)
+	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
+		LOG("SPAWNING FACTORY")
+		spawnFactory(c)
+		c.factoryOwnershipChanged = false
+	end
+end
+
 function reassignFactories()
 	for ci,continent in continents do
 		for i,c in continent.countries do
-			if c.factoryOwnershipChanged == true or c.factoryOwnershipChanged == nil or c.factory:IsDead() then
-				if c.factory != nil then
-					local f = c.factory
-					c.factory = nil;
-					f:SetCanBeKilled(true)
-					if not f:IsDead() then f:Kill() end
-					WaitSeconds(3)
-				end
-				WaitSeconds(2)
-				spawnFactory(c)
-				c.factoryOwnershipChanged = false
+			if c.factoryOwnershipChanged == true or c.factoryOwnershipChanged == nil or (c.factory and c.factory:IsDead()) or not c.factory then
+				ForkThread(respawnFactory,c)
 			end
 		end
 	end
@@ -1059,6 +1295,7 @@ end
 function checkEndOfRound()
 
 	roundIdleSeconds = roundIdleSeconds + 1
+	roundTotalTime = roundTotalTime + 1
 	Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
 	
 
@@ -1093,17 +1330,16 @@ function displayMissions()
 	local mission = players[GetFocusArmy()].mission
 	
 --	        {ShowFaction = 'Cybran'}'capture'  'capture'
-	
+	if mission then
 	ScenarioFramework.Objectives.Basic(
         'primary',
         'incomplete',
-        'Your mission is to '..mission:getText(),
+        'Primary Mission: '..mission:getText(),
         "detail",
         ScenarioFramework.Objectives.GetActionIcon(mission.icon),
         {Category = categories.uel0001}
     )
-
---	PrintText(mission:getText(),20,'FFFFFFFF',5,'center') 
+	end
 --	WaitSeconds(1)
 	
 end
@@ -1161,35 +1397,83 @@ function onRoundAction(start)
 	end
 end
 
+function getAllies(me)
+	local allies = {}
+	for i, player in players do
+		if IsAlly(player.index, me.index) then
+			table.insert(allies, player)
+		end
+	end
+	return allies
+end
 
+function checkContinentOwn(continent, player)
+	local o = false
+	for army, counter in continent.owners do
+		if IsAlly(player.index, army) then -- allied?
+			o = true
+			--teams[army] = army
+		else
+			o = false
+			break
+		end
+	end
+	return o
+end
+
+function computeIncome(player)
+		local build = {};
+		build.ter = math.floor(player.empireSize/3)
+		if build.ter < 3 then build.ter = 3 end
+		
+		local teams = getAllies(player)
+		-- bonus card cashin
+		build.bonus = player.nextRoundBonusProfit
+
+		build.ter = build.ter * player.resourceMultiplyer
+		build.bonus = build.bonus * player.resourceMultiplyer
+		
+		-- Continent resources
+		build.cont = 0
+		for i,continent in continents do
+--			dump(continent.owners)
+			if checkContinentOwn(continent, player) then
+				build.cont = build.cont + continent.ownerBonus
+			end
+		end
+		
+		local teamSize = table.getn(teams)
+		if build.cont > 0 and teamSize > 1 then
+			local ns = math.floor(build.cont/teamSize)
+			local rest = build.cont - ns*teamSize
+			
+			build.cont = ns;
+			for i, p in teams do
+				if rest > 0 then
+					rest = rest -1
+					if p.index == player.index then
+						build.cont = build.cont +1
+					end
+				end
+			end
+		end
+		LOG(player.brain.Nickname.." receives "..build.cont.." for continents")
+		
+		build.total = build.ter + build.cont + build.bonus
+		return build
+end
 
 function beginNextRound()
 	
 	roundnum = roundnum +1
 	LOG("A NEW ROUND "..roundnum.." has begun")
+	roundTotalTime = 0
 	
 	-- distribute Resources
 	for i, player in players do
-
-		player.build = {};
-		player.build.ter = math.floor(player.empireSize/3)
-		if player.build.ter < 3 then player.build.ter = 3 end
-		
-		-- bonus card cashin
-		player.build.bonus = player.nextRoundBonusProfit
+		player.build = computeIncome(player)
 		player.nextRoundBonusProfit = 0
 		player.bonusCardSpawned = false
-
-		-- Continent resources
-		player.build.cont = 0
-		for i,continent in continents do
-			if continent.owner == player.armyName then
-				LOG(continent.owner.." receives "..continent.ownerBonus.." for "..continent.name)
-				player.build.cont = player.build.cont + continent.ownerBonus
-			end
-		end
-		
-		player.build.total = player.build.ter + player.build.cont + player.build.bonus
 		player.acu:SRAddUnitResources(player.build.total)
 	end
 	
@@ -1198,22 +1482,37 @@ function beginNextRound()
 end
 
 function checkPlayerDeath(player)
+-- this is buggy
 	if player.empireSize == 0 then
-		player.acu:Kill() -- goodbye ACU
+		if not player.acu:IsDead() then 
+			player.acu:Kill() -- goodbye ACU
+		end
 --		player.brain:OnDefeat()
 	end
 end
 
 function checkPlayerWin(player)
 --	LOG("checking win on "..player.mission:getText())
-	if player.mission:check() then
+	if player.mission:check() and not player.acu:IsDead() then
 		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',5,'center') 
 
-		for i, pl in players do
-			if pl != player then
-				pl.acu:Kill()
-			end
+		-- Kill all other units!
+		player.acu:SetIntelRadius('Vision', 2000)
+		continents = {} -- destroy countries to prevent respawns
+		WaitSeconds(1)		
+		
+		for i, player in players do
+			player.brain.OnDefeat = player.brain.OnOrigDefeat -- restore defeat
 		end
+
+		local otherUnits = GetUnitsInRect(Rect(0,0,1024,1024))
+		for i, unit in otherUnits do
+			if not IsAlly(player.index, unit:GetArmy()) then
+				unit:Kill()
+				--player.brain:OnDefeat()
+			end
+		end		
+
 		WaitSeconds(500)
 	end
 end
@@ -1223,7 +1522,7 @@ function updateSecondaryMissions()
 	
 --		LOG(i.." "..player.acu.SRUnitsToBuild)
 
-		if i == GetFocusArmy() then
+		if player.index == GetFocusArmy() then
 			-- only do in own sim state, not for others (this doesnt desync!)
 			
 			local objTitle = 'Reinforce your territories - you can place '..player.acu.SRUnitsToBuild..' units. '
@@ -1246,6 +1545,13 @@ function updateSecondaryMissions()
 		
 			-- Add secondary objective - use these resources!!
 			if not player.buildObjective and player.acu.SRUnitsToBuild > 0 then
+				-- kill preview
+				if player.previewObjective then
+					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.previewObjective.Tag)
+					player.previewObjective = nil
+				end
+				
+				-- show real
 				player.buildObjective = ScenarioFramework.Objectives.Basic(
 		        '',
 		        'incomplete',
@@ -1257,7 +1563,7 @@ function updateSecondaryMissions()
 			end
 			
 			-- warn player if he has still not built his units
-			if player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
+			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
 				player.buildObjectiveWarn = true
 				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
 				ScenarioFramework.Dialogue(m1)		
@@ -1265,7 +1571,7 @@ function updateSecondaryMissions()
 			
 			-- check bonus unit cards
 			if canCashinAny(player) then
-				LOG("We could cash in bonus cards!")
+--				LOG("We could cash in bonus cards!")
 				-- Add secondary objective - use these resources!!
 				if not player.cardObjective  then
 					player.cardObjective = ScenarioFramework.Objectives.Basic(
@@ -1300,8 +1606,26 @@ function updateSecondaryMissions()
 			        ScenarioFramework.Objectives.GetActionIcon("kill"),
 			        {Category = categories.ueb0101}
 					)
-				end
+			end
 			
+			if player.acu.SRUnitsToBuild == 0 and not player.previewObjective then
+				player.previewObjective = ScenarioFramework.Objectives.Basic(
+			        '',
+			        'incomplete',
+					'',
+			        "detail",
+			        ScenarioFramework.Objectives.GetActionIcon("build"),
+			        {Category = categories.ueb0101}
+					)
+			end
+			if player.acu.SRUnitsToBuild == 0 and player.previewObjective then
+				-- update
+				local b = computeIncome(player)
+				local ptitle = 'Next Round (begins after noone attacks or builds for '..maxRoundIdleTime..' seconds) you can build '..b.total..
+				' units ('..b.ter..' from territories, '..b.cont..' from continents, '..b.bonus..' from wreckage)'
+		        ScenarioFramework.Objectives.UpdateObjective( ptitle, 'title', ptitle, player.previewObjective.Tag)
+			end
+
 		end
 	end
 end
@@ -1321,12 +1645,13 @@ function mainThread()
 
 	while true do
 		checkCountryOwnership()
+		
 		checkEndOfRound()
 		checkEndOfGame()
 		
+		updateSecondaryMissions()
 --		updateScore()
 		WaitSeconds(1)
-		updateSecondaryMissions()
 	end
 end
 
@@ -1334,7 +1659,17 @@ function jobsThread()
 	while true do
 		reassignFactories()
 		checkTeleportationZones()
+		controlAIPlayers()
 		WaitSeconds(1)
+	end
+end
+
+function controlAIPlayers()
+	for i, player in players do
+	-- Start the AI (no human)
+		if player.brain.BrainType == "AI" then
+			onPlayerDefeat(player.brain)
+		end
 	end
 end
 
@@ -1345,38 +1680,6 @@ function maintenanceThread()
 		
 	end
 end
-
---[[
-function garbage__()
-
-		--debug
-		for i, player in players do
-			player.bonusCardSpawned = false 
-			spawnRandomCard(player)
-		end
-
-		if unit.originalUpdateMovementEffectsOnMotionEventChange == nil then
-			unit.originalUpdateMovementEffectsOnMotionEventChange = unit.UpdateMovementEffectsOnMotionEventChange
-			unit.UpdateMovementEffectsOnMotionEventChange = function(self, new, old)
-				self:originalUpdateMovementEffectsOnMotionEventChange(new,old)
-				LOG("New Move Command")
-				local navi = self:GetNavigator()
-				dump(navi:GetGoalPos())
-				
-				
-				if navi.SetGoalOriginal == nil then
-					navi.SetGoalOriginal = navi.SetGoal
-					navi.myUnit = self
-					navi.SetGoal = function (self2, position)
-						self2:SetGoalOriginal(position)
-						LOG("SETGOAL")
-					end
-				end
-			end
---			dump(unit:GetRallyPoint())
-		end
-end
-]]--
 
 function isInside(zone, pos)
 	if  pos[1] <= zone.x1 and pos[1] >= zone.x0 
