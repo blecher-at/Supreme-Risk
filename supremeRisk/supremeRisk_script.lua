@@ -6,8 +6,13 @@ RestrictedCategories=EXPERIMENTAL,MASSFABRICATION
 END
 --]]
 
+
+
+--         local dis=VDist3(location, unit:GetPosition()) 
+
 local ScenarioUtils = import('/lua/sim/ScenarioUtilities.lua')
 local ScenarioFramework = import('/lua/ScenarioFramework.lua')
+local Factions = import('/lua/factions.lua').Factions
 
 --scenario utilities
 local Utilities = import('/lua/utilities.lua')
@@ -21,7 +26,7 @@ local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnTime = 7; -- warn n seconds before end of round
+local idleWarnTime = 10; -- warn n seconds before end of round
 local roundnum = 0;
 
 local players = {};
@@ -101,135 +106,64 @@ end
 
 local tblGroup = nil;
 
-local countries = {
-	{	name='Iceland',
-		pos = {
-			x = 407, 
-			y = 330
-		},
-		owner = "ARMY_1",
-		walls = nil;
+local continents = 
+{
+	na = {	name='North America',
+		ownerBonus = 5,
+		countries = {
+			{name='Alaska',					pos = {x = 100, y = 285},	owner = "ARMY_1",	walls = nil	},	
+			{name='West United States',		pos = {x = 170, y = 375},	owner = "ARMY_9",	walls = nil	},
+			{name='Eastern United States',	pos = {x = 200, y = 410},	owner = "ARMY_9",	walls = nil	},	
+			{name='Mexico',					pos = {x = 139, y = 455},	owner = "ARMY_9",	walls = nil	},	
+			{name='Alberta',				pos = {x = 150, y = 320},	owner = "ARMY_9",	walls = nil	},		
+			{name='Ontario',				pos = {x = 200, y = 320},	owner = "ARMY_2",	walls = nil	},		
+			{name='Quebec',					pos = {x = 282, y = 330},	owner = "ARMY_2",	walls = nil	},		
+			{name='Northwest Territories',	pos = {x = 150, y = 285},	owner = "ARMY_9",	walls = nil	},			
+			{name='Greenland',				pos = {x = 363, y = 303},	owner = "ARMY_9",	walls = nil	},
+		}
 	},
-	{	name='Alaska',
-		pos = {
-			x = 100, 
-			y = 285
-		},
-		owner = "ARMY_1",
-		walls = nil;
-	},	
-	
-	-- NORTH AMERICA
-	{	name='West United States',
-		pos = {x = 170, y = 375},
-		owner = "ARMY_9",
-		walls = nil
+	sa = {	name='South America',
+		ownerBonus = 2,
+		countries = {
+			{name='Argentinia',				pos = {x = 290, y = 710},	owner = "ARMY_9", },
+			{name='Brasil',					pos = {x = 350, y = 590},	owner = "ARMY_9", startUnits = 7 },	
+			{name='Venezuela',				pos = {x = 250, y = 540},	owner = "ARMY_9", },	
+		}
 	},
-	{	name='Eastern United States',
-		pos = {x = 200, y = 410},
-		owner = "ARMY_9",
-		walls = nil
-	},	
-	{	name='Mexico',
-		pos = {x = 139, y = 455},
-		owner = "ARMY_9",
-		walls = nil
-	},	
-	{	name='Alberta',
-		pos = {x = 150, y = 320},
-		owner = "ARMY_9",
-		walls = nil
-	},		
-	{	name='Ontario',
-		pos = {x = 200, y = 320},
-		owner = "ARMY_9",
-		walls = nil
-	},		
-	{	name='Quebec',
-		pos = {x = 282, y = 330},
-		owner = "ARMY_9",
-		walls = nil
-	},		
-	{	name='Northwest Territories',
-		pos = {x = 282, y = 330},
-		owner = "ARMY_9",
-		walls = nil
-	},			
-	{	name='Greenland',
-		pos = {x = 363, y = 303},
-		owner = "ARMY_9",
-		walls = nil
-	},				
-	-- SOUTH AMERICA
-	{	name='ARMY_9',
-		pos = {x = 290, y = 710},
-		owner = "ARMY_9",
-		walls = nil
+	af = {	name='Africa',
+		ownerBonus = 3,
+		countries = {	
+			{name='West Africa',			pos = {x = meter(8700), y = meter(10300)},	owner = "ARMY_9", startUnits = 6},
+			{name='Egypt',					pos = {x = 530, y = 497},	owner = "ARMY_2"},
+			{name='Congo',					pos = {x = 522, y = 617},	owner = "ARMY_1"},
+			{name='South Africa',			pos = {x = 560, y = 700},	owner = "ARMY_1"},		
+			{name='East Africa',			pos = {x = 584, y = 632},	owner = "ARMY_1"},		
+			{name='Madagascar',				pos = {x = 619, y = 684},	owner = "ARMY_1"},		
+		}
 	},
-	{	name='ARMY_9',
-		pos = {x = 350, y = 590},
-		owner = "ARMY_9",
-		walls = nil,
-		startUnits = 7
-	},	
-	{	name='ARMY_9',
-		pos = {x = 250, y = 540},
-		owner = "ARMY_9",
-		walls = nil
-	},	
-	
-	-- AFRICA
-	{	name='West Africa',
-		pos = {x = meter(8700), y = meter(10300)},
-		owner = "ARMY_9",
-		walls = nil,
-		startUnits = 6
+	eu = {
+		name='Europe',
+		ownerBonus = 5,
+		countries = {
+			{name='Iceland',				pos = {x = 407, y = 330},	owner = "ARMY_1"},
+		}
 	},
-	{	name='Egypt',
-		pos = {x = 530, y = 497},
-		owner = "ARMY_9",
-		walls = nil
+	as = {
+		name='Asia',
+		ownerBonus = 7,
+		countries = {
+			{name='Kamchatka',				pos = {x = 920,	y = 305},	owner = "ARMY_1", walls = circleWalls},
+			{name='China',					pos = {x = 830, y = 490}, owner = "ARMY_1" },
+		}
 	},
-	{	name='Congo',
-		pos = {x = 522, y = 617},
-		owner = "ARMY_1",
-		walls = nil
-	},	
-	{	name='South Africa',
-		pos = {x = 560, y = 700},
-		owner = "ARMY_1",
-		walls = nil
-	},		
-	{	name='East Africa',
-		pos = {x = 584, y = 632},
-		owner = "ARMY_1",
-		walls = nil
-	},		
-	{	name='Madagascar',
-		pos = {x = 619, y = 684},
-		owner = "ARMY_1",
-		walls = nil
-	},		
-	
-	
-		{	name='Kamchatka',
-		pos = {
-			x = 920,			
-			y = 305
-		},
-		owner = "ARMY_1",
-		walls = circleWalls
-	},
-  {
-		name='China',
-		pos = {
-			x = meter(4100), 
-			y = meter(2800)
-		},
-		owner = "ARMY_9",
-		walls = circleWalls
-  }
-  }
+	au = {
+		name='Australia',
+		ownerBonus = 7,
+		countries = {
+			{name='West Australia',				pos = {x = 830,	y = 905},	owner = "ARMY_1"},
+		}
+	}	
+}
 
 local teleportationZones = {
 	{
@@ -255,58 +189,36 @@ local cardTypes = {
 	{unit = 'uel0304', profit = 8},
 }	
   
+local missions = {}
+
+
+  
   
 local player = nil;
 
 function OnPopulate()
-  LOG("OnPopulate ----------------------------------")
-  
-  -- prevent ACU warpin animation
-  ScenarioInfo.Options['PrebuiltUnits'] = nil
-  
-  tblGroup = ScenarioUtils.InitializeArmies()
+	LOG("OnPopulate ----------------------------------")
 
-  ScenarioFramework.SetPlayableArea('AREA_1' , false)
+	-- prevent ACU warpin animation
+	ScenarioInfo.Options['PrebuiltUnits'] = nil
+
+	tblGroup = ScenarioUtils.InitializeArmies()
+
+	ScenarioFramework.SetPlayableArea('AREA_1' , false)
   
-  -- Set Camera to show full Map
-  local Camera = import('/lua/SimCamera.lua').SimCamera
-  local cam = Camera("WorldCamera")
---  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
+	-- Set Camera to show full Map
+	local Camera = import('/lua/SimCamera.lua').SimCamera
+	local cam = Camera("WorldCamera")
+	--  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
 	cam:SetZoom(2000,0)
 
 	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
 
-	
-	dump(moho.navigator_methods)
-	
-  LOG("ONPOPULATE END")
+	LOG("ONPOPULATE END")
 end
 
 function numPlayers()
 	return table.getn(players)
-end
-
-function OnStart(self)
---	PrintText("KAKAKAAK",20,'FFFFFFFF',20,'center')
-  LOG("OnStart -------------------------------")
-  LOG("Hello world")
-
-  init()
---  initFactories()
-  initStartUnits()
-  
-  initMainThread()
-end
-
-function init()
-	for index,army in ListArmies() do
-		LOG(index.." "..army.." is playing")
-		
-		#Building Restrictions
-		dump(categories)
-		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
-		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
-	end
 end
 
 -- acu functions
@@ -327,141 +239,68 @@ function onSRAddUnitResources(acu, un)
 end
 
 
--- Bonus Card System
-function spawnRandomCard(player)
-	local cardType = cardTypes[math.random(table.getn(cardTypes))];
-	spawnCard(player, cardType)
-	
-end
-
-function spawnCard(player, cardType)
-	
-	if player.bonusCardSpawned == false then
-		player.bonusCardSpawned = true
-
-		if not player.cardSlots then
-			player.cardSlots = {false, false, false, false, false}
-		end
-		for i, slot in player.cardSlots do
-			if slot == false then
-				LOG("Creating Card prop at slot "..i)
-				spawnCardProp(player, cardType, i)
-				break;
-			end
-		end
-	end
-end
-
-function spawnCardProp(player, cardType, i)
-	local acupos = player.acu:GetPosition();
-	acupos[3] = acupos[3] - 5;
-	acupos[1] = acupos[1] - 6;
-
-	local card = CreateUnitHPR(cardType.unit, player.armyName, acupos[1]+2*i, 0, acupos[3], 0,0,0)		
-	local wr = card:CreateWreckageProp(1)
-	
-	card:Destroy()
-	wr.slotNumber = i
-	wr.cardType = cardType
-	player.cardSlots[i] = wr
-	
-	-- what happens if we reclaim?
-	wr.OnReclaimed = function(self) 
-			self.isAlreadyReclaimed = true;
-			local myProfit = 0 
-			
-			-- check for 3 cards of the type
-			if hasCard(player, self.cardType.unit) >= 3 then
-				removeCard(player, self.cardType.unit)
-				removeCard(player, self.cardType.unit)
-				removeCard(player, self.cardType.unit) -- remove the third one too!
-				myProfit = self.cardType.profit
-			end
-			
-			-- check for three different cards
-			local hasAll = true;
-			for i, cardType in cardTypes do
-				if hasCard(player, cardType.unit) == 0 then
-					hasAll = false; -- we dont have this unit - profit is zero
-				end
-			end
-				
-			if myProfit == 0 and hasAll then
-				myProfit = 10;
-				-- remove cards
-				for i, cardType in cardTypes do
-					if(self.cardType.unit != cardType.unit) then
-						removeCard(player, cardType.unit)
-					end
-				end
-			end
-			
-			--- profit assignment
-			LOG("Profit for next round is "..myProfit)
-
-			
-			if myProfit > 0 then -- cashed something in 
-				-- assign profit to next round
-				player.nextRoundBonusProfit = myProfit;
-				player.cardSlots[self.slotNumber] = false -- remove the card
-			else
-				-- respawn prop
-				spawnCardProp(player, self.cardType, self.slotNumber)
---				spawnCard(player, self.cardType)
-			end
-	end
-	return card;
-end
-
-function hasCard(player, unitType)
-	local hasCounter = 0;
-	for i, slot in player.cardSlots do
-		if slot then
-			if slot.cardType.unit == unitType then
-				hasCounter = hasCounter + 1
-			end
-		end
-	end
-	return hasCounter;
-end
-
-
-function removeCard(player, unitType)
-	local hasCounter = 0;
-	for i, slot in player.cardSlots do
-		if slot then
-			if slot.cardType.unit == unitType then
-				if not slot.isAlreadyReclaimed then -- prevent duplicate removal
-					player.cardSlots[i] = false;
-					slot:Destroy() -- remove wreckage
-				end
-				return;
-			end
-		end
-	end
-	return hasCounter;
-end
-
+################################
 ############ init ##############
+################################
+function OnStart(self)
+--	PrintText("KAKAKAAK",20,'FFFFFFFF',20,'center')
+  LOG("OnStart -------------------------------")
+  LOG("Hello world")
+
+  init()
+--  initFactories()
+  initPlayers() 
+  initStartUnits() -- putting up units and countries
+  initPlayerResources() -- setting up the resources to start with
+  initMissions() -- setting up the missions, and assigning them
+
+  initMainThread()
+end
+
+function init()
+	for index,army in ListArmies() do
+		LOG(index.." "..army.." is playing")
+		
+		#Building Restrictions
+		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
+		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
+	end
+	
+end
 
 function initStartUnits()
 	local yoffset = 6;
-	for i,cdata in countries do
-		-- Spawn one unit per country
-		setAsPresident(cdata, nil)
-		
-		if cdata.startUnits then
-			local ii = 0
-			while ii < cdata.startUnits do
-				CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+10,cdata.pos.y+yoffset, 0,0,0)
-				ii = ii+1
+	for ci,continent in continents do
+		LOG("Setting up "..continent.name)
+		for i,cdata in continent.countries do
+			-- Spawn one unit per country
+			
+			spawnCapital(cdata)
+			setAsPresident(cdata, nil)		
+
+			if cdata.startUnits then
+				local ii = 0
+				while ii < cdata.startUnits do
+					local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+10,cdata.pos.y+yoffset, 0,0,0)
+					initUnit(unit)
+
+					ii = ii+1
+				end
 			end
 		end
 --		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x+2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
-		spawnCapital(cdata)
---		spawnFactory(cdata)
 	end
-	
+  	
+	local i = 0		
+	-- debug spawn some units
+	while i < 0 do
+	unit = CreateUnitHPR('uel0106', "ARMY_1",50,0,300, 0,0,0)
+	i = i+1
+	end
+			
+end
+
+function initPlayers()
 	-- ACU and Resources
 	local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
 	for i,acu in playerACUs do
@@ -491,35 +330,191 @@ function initStartUnits()
   		
 		-- mobility
 		player.acu:SetImmobile(true)
+
+		--brain
+		player.brain = GetArmyBrain(player.armyName)
+		player.brain.player = player -- callback!
+		player.brain.CalculateScore = function(self)
+			return player.empireSize
+		end
+		
+		player.empireSize = 0;
 	end
-  
-	-- set Starting Resources depending on owned Countries and # of players
-    for i, player in players do
-		local startResources = 50-(numPlayers()*5) - GetEmpireSize(player.armyName)
-		player.acu:SRAddUnitResources(startResources)
-	end
-  
-  
-  
-	
-	local i = 0		
-	-- debug spawn some units
-	while i < 150 do
-	unit = CreateUnitHPR('uel0106', "ARMY_1",50,0,300, 0,0,0)
-	i = i+1
-	end
-			
 end
 
+function initPlayerResources()
+	checkCountryOwnership() -- initialize Country Ownerships
+	-- set Starting Resources depending on owned Countries and # of players
+    for i, player in players do
+		local startResources = 50-(numPlayers()*5) - player.empireSize
+		player.acu:SRAddUnitResources(startResources)
+	end
+end
+
+function initMissions()
+	addMissionContinent({continents.as, continents.sa})
+	addMissionContinent({continents.as, continents.af})
+	addMissionContinent({continents.na, continents.af})
+	addMissionContinent({continents.na, continents.au})	
+	addMissionContinent({continents.eu, continents.sa, 'any'}) -- these two and any third one
+	addMissionContinent({continents.eu, continents.au, 'any'}) -- these two and any third one
+	for i, player in players do
+		addMissionKill(player)
+	end
+	addMissionCountries(18,2) -- 2 units in 18 countries
+	addMissionCountries(24,1) -- 1 unit in 24 countries
+	
+	-- Assigning them to players now
+	for i, player in players do
+		while not player.mission do
+			local rm = missions[math.random(table.getn(missions))]
+			-- mission not yet given
+			if not rm.owner then
+				-- dont kill yourself as a mission
+				if not rm.target or rm.target != player then
+					rm.owner = player
+					player.mission = rm
+				end
+			end
+		end
+		
+		local nn = GetArmyBrain(player.armyName).Nickname
+		LOG(nn..": "..player.mission:getText())
+	end
+	
+--	        player.objective = GetArmyBrain(player.armyName).Nickname..": Objective"
+	--	LOG("Faction: "..GetFaction(player).SoundPrefix)
+	
+
+end
+
+function addMissionContinent(cc)
+	local mission = Class() {
+		icon='capture',
+		reqContinents = cc, 
+		owner = false,
+		getText = function(self)
+			local names = ""
+			for i,continent in self.reqContinents do
+				local cn = ""
+				if continent == "any" then 
+					cn = "a 3rd continent of your choice"
+				else
+					cn = continent.name
+				end
+			
+				if i < table.getn(self.reqContinents) then
+					names = names..cn.." and "
+				else
+					names = names..cn
+				end
+			end
+			return "Liberate "..names
+		end,
+		
+		check = function (self)
+			if self.owner then
+				-- check number first
+				continentCount = 0
+				for i, continent in continents do
+					if continent.owner == self.owner then
+						continentCount = continentCount + 1
+					end
+				end
+				if continentCount < table.getn(self.reqContinents) then
+					return false -- not enough
+				end
+			
+				for i, continent in self.reqContinents do
+					if continent != 'any' and continent.owner != self.owner then
+						return false
+					end
+				end
+				return true
+			else
+				return false
+			end
+		end
+	}
+	table.insert(missions, mission)
+end
+
+function addMissionCountries(_empireSize, _minUnits)
+	local mission = Class() {
+		icon='capture',
+		empireSize = _empireSize, 
+		minUnits = _minUnits,
+		owner = false,
+		check = function (self)
+			if self.owner then
+				local matchingCountries = 0
+				for ci,continent in continents do
+					for i,country in continent.countries do		
+						if country.owner == self.owner and country.friendlyUnits >= self.minUnits then
+							matchingCountries = matchingCountries + 1
+						end
+					end
+				end
+				
+				if matchingCountries >= self.empireSize then
+					return true
+				else
+					return false
+				end
+			else
+				return false
+			end
+		end,
+		getText = function(self)
+			if self.minUnits > 1 then
+				return "Occupy "..self.empireSize.." territories with at least "..self.minUnits.." armies in each"
+			else
+				return "Occupy "..self.empireSize.." territories"
+			end
+		end
+	}
+	table.insert(missions, mission)
+end
+
+function addMissionKill(player)
+	local mission = Class() {
+		icon='kill',
+		target = player,
+		owner = false,
+		check = function (self)
+			if self.owner then
+				if self.target.acu:IsDead() then return true
+				else return false
+				end
+			else
+				return false
+			end
+		end,
+		getText = function(self)
+			return "Eliminate "..GetArmyBrain(self.target.armyName).Nickname
+		end
+		
+	}
+	table.insert(missions, mission)
+end
+
+
+function GetFaction(player)
+	return Factions[GetArmyBrain(player.armyName):GetFactionIndex()]
+end
+
+--[[
 function GetEmpireSize(armyName)
 	local es = 0
-	for i,cdata in countries do
+	for ci,continent in continents do
+	for i,cdata in continent.countries do
 		if cdata.owner == armyName then
 			es = es +1
 		end
 	end
+	end
 	return es
-end
+end]]--
 
 function spawnCapital(cdata)
 	cdata.factoryOwnershipChanged = false
@@ -541,6 +536,7 @@ function spawnFactory(cdata)
 
 	u:SetAllWeaponsEnabled(false)		
 	u:SetCanBeKilled(true)
+	u:SetIsValidTarget(false)
 	u:SetDoNotTarget(true)
 	u:SetMaxHealth(1)
 	u:SetHealth(nil,1)
@@ -554,10 +550,9 @@ function spawnFactory(cdata)
 		LOG("Unit has been Built: "..unit:GetEntityId())
 		
 		onRoundAction()
-		u:AddOnKilledCallback(function(self) onRoundAction() end) -- round is delayed on kills
+		initUnit(unit)
 		end
 		, categories.MOBILE)
-
 
 	u.OnStartBuildOriginal = u.OnStartBuild
 	u.OnStartBuild = function(self, unitBeingBuilt, order)
@@ -567,6 +562,7 @@ function spawnFactory(cdata)
 
 		if player.acu:SRProduceUnit() then 
 			LOG(self:GetArmy().." start building ")
+			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
 		else
 --			LOG("Build limit reached")
@@ -580,6 +576,15 @@ function spawnFactory(cdata)
 	u.SetConsumptionPerSecondMass = function() end
 --	u.UpdateConsumptionValues = function() end
 	
+end
+
+function initUnit(unit)
+
+	unit:AddOnKilledCallback(
+	function(self) 
+		LOG("Unit died")
+		onRoundAction() 
+	end) -- round is delayed on kills
 end
 
 function round(num)
@@ -636,6 +641,7 @@ function setAsPresident(country, unit)
 	if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
+		initUnit(unit)		
 	end
 
 	-- only alive units can be elected president
@@ -848,91 +854,120 @@ end
 
 function checkCountryOwnership()
 	local baseSizeInner = 0.9
-	for i,cdata in countries do
-		rect = {x0 = cdata.pos.x - meter(baseSizeMeters)*baseSizeInner,
-				x1 = cdata.pos.x + meter(baseSizeMeters)*baseSizeInner,
-				y0 = cdata.pos.y - meter(baseSizeMeters)*baseSizeInner,
-				y1 = cdata.pos.y + meter(baseSizeMeters)*baseSizeInner
-				}
-				
-		local units = GetUnitsInRect(rect)
-		
-		local armycounters = {}
-		if units then
-			for index,unit in units do
-				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 then
-				
-					local weapon = unit:GetWeapon(1)
-					local h = 1
-					unit:SetMaxHealth(h)
-					unit:SetHealth(nil, h)
+	
+	for i, player in players do
+		player.empireSize = 0
+	end
+	
+	for ci,continent in continents do
+		continent.owner = nil;
+		for i,cdata in continent.countries do		
+			rect = {x0 = cdata.pos.x - meter(baseSizeMeters)*baseSizeInner,
+					x1 = cdata.pos.x + meter(baseSizeMeters)*baseSizeInner,
+					y0 = cdata.pos.y - meter(baseSizeMeters)*baseSizeInner,
+					y1 = cdata.pos.y + meter(baseSizeMeters)*baseSizeInner
+					}
+					
+			local units = GetUnitsInRect(rect)
+			
+			local armycounters = {}
+			if units then
+				for index,unit in units do
+					if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 then
+					
+						local weapon = unit:GetWeapon(1)
+						local h = 1
+						unit:SetMaxHealth(h)
+						unit:SetHealth(nil, h)
 --				LOG(unit:GetBlueprint())
-					if(armycounters[unit:GetArmy()]) then
-						armycounters[unit:GetArmy()] = armycounters[unit:GetArmy()] +1
-					else
-						armycounters[unit:GetArmy()] = 1;
-					end
 					
-					
-					if(getArmyName(unit) == cdata.owner) then
-						-- own unit
-						unit:SetSpeedMult(2) -- reset for successful liberators
+						if(armycounters[unit:GetArmy()]) then
+							armycounters[unit:GetArmy()] = armycounters[unit:GetArmy()] +1
+						else
+							armycounters[unit:GetArmy()] = 1;
+						end
 						
-						weapon:ChangeRateOfFire(2)
+						
+						if(getArmyName(unit) == cdata.owner) then
+							-- own unit
+							unit:SetSpeedMult(8) -- reset for successful liberators
+							unit:SetAccMult(5)
+							unit:SetTurnMult(5)
+							
+							weapon:ChangeRateOfFire(2)
 --						weapon:SetTurretYawSpeed(300)
 --						weapon:SetTurretPitchSpeed(300)
-						weapon:ChangeMaxRadius(meter(baseSizeMeters)*baseSizeInner*0.8)
-						weapon:SetFiringRandomness(1.2)
-					
-						if cdata.president != unit then
-							--unit:SetCustomName("") --Citizen of "..cdata.name)
-						end
+							weapon:ChangeMaxRadius(meter(baseSizeMeters)*baseSizeInner*0.8)
+							weapon:SetFiringRandomness(1.2)
 						
-						if not presidentIsAlive(cdata) then
-							setAsPresident(cdata, unit)
+							if cdata.president != unit then
+								--unit:SetCustomName("") --Citizen of "..cdata.name)
+							end
+							
+							if not presidentIsAlive(cdata) then
+								setAsPresident(cdata, unit)
+							end
+						else
+							-- enemy unit
+							weapon:SetFiringRandomness(1.4)
+							unit:SetSpeedMult(0.6) -- no easy retreat for liberators
+							--unit:SetCustomName("Liberator of "..cdata.name)
 						end
-					else
-						-- enemy unit
-						weapon:SetFiringRandomness(1.4)
-						unit:SetSpeedMult(0.4) -- no easy retreat for liberators
-						--unit:SetCustomName("Liberator of "..cdata.name)
 					end
 				end
 			end
-		end
-	
-		local enemyUnits = 0;
-		local enemyArmy = nil;
-		local enemyArmyId = nil;
-		local friendlyUnits = 0;
-		for index, counter in armycounters do
-			--LOG("player "..index.." "..getArmyName(index)..": "..counter.." found in "..cdata.name.." ("..cdata.owner..")");
-			if getArmyName(index) == cdata.owner then
-				friendlyUnits = counter
+			local enemyUnits = 0;
+			local enemyArmy = nil;
+			local enemyArmyId = nil;
+			local friendlyUnits = 0;
+			for index, counter in armycounters do
+				--LOG("player "..index.." "..getArmyName(index)..": "..counter.." found in "..cdata.name.." ("..cdata.owner..")");
+				if getArmyName(index) == cdata.owner then
+					friendlyUnits = counter
+					cdata.friendlyUnits = friendlyUnits
+				else
+					enemyUnits = enemyUnits +counter
+					enemyArmy = getArmyName(index)
+					enemyArmyId = index
+				end
+		    end
+			if enemyUnits > 0 then
+				-- kill factory
+				if false and cdata.factory then --- commented out, factory is untargetable now
+					cdata.factory:SetCanBeKilled(true)
+					cdata.factory:Kill()
+				end
+				setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
 			else
-				enemyUnits = enemyUnits +counter
-				enemyArmy = getArmyName(index)
-				enemyArmyId = index
-			end
-	    end
-		if enemyUnits > 0 then
-			setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
-		else
-			setFactoryName(cdata,cdata.name..": "..friendlyUnits)
-		
-		end
-
-		if friendlyUnits == 0 and enemyUnits > 0 then
-			LOG(cdata.name.." liberated by "..enemyArmy)
+				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
 			
-			spawnRandomCard(players[enemyArmyId]) -- spawn card for player
-			cdata.owner = enemyArmy
-			cdata.factoryOwnershipChanged = true;
-		end
-		if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
-			cdata.owner = "ARMY_9"
-			cdata.factoryOwnershipChanged = true;
-		
+			end
+
+			if friendlyUnits == 0 and enemyUnits > 0 then
+				LOG(cdata.name.." liberated by "..enemyArmy)
+				
+				spawnRandomCard(players[enemyArmyId]) -- spawn card for player
+				cdata.owner = enemyArmy				
+				cdata.factoryOwnershipChanged = true;
+			end
+			if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
+				cdata.owner = "ARMY_9"
+				cdata.factoryOwnershipChanged = true;
+			
+			end
+			
+			if continent.owner == nil or continent.owner == cdata.owner then
+				continent.owner = cdata.owner
+			else
+				continent.owner = false
+			end
+					
+			-- update Empire Size
+			for i, player in players do
+				if player.armyName == cdata.owner then
+					player.empireSize = player.empireSize +1
+				end
+			end
 		end
 	end
 
@@ -948,16 +983,20 @@ function setFactoryName(country, text)
 end
 
 function reassignFactories()
-	for i,c in countries do
-		if c.factoryOwnershipChanged == true or c.factoryOwnershipChanged == nil or c.factory:IsDead() then
-			if c.factory != nil and not c.factory:IsDead() then
-				local f = c.factory
-				c.factory = nil;
-				f:Kill()
-				WaitSeconds(7)
+	for ci,continent in continents do
+		for i,c in continent.countries do
+			if c.factoryOwnershipChanged == true or c.factoryOwnershipChanged == nil or c.factory:IsDead() then
+				if c.factory != nil then
+					local f = c.factory
+					c.factory = nil;
+					f:SetCanBeKilled(true)
+					f:Kill()
+					WaitSeconds(3)
+				end
+				WaitSeconds(2)
+				spawnFactory(c)
+				c.factoryOwnershipChanged = false
 			end
-			spawnFactory(c)
-			c.factoryOwnershipChanged = false
 		end
 	end
 end
@@ -969,31 +1008,55 @@ end
 function checkEndOfRound()
 
 	roundIdleSeconds = roundIdleSeconds + 1
+    Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
+
 	if roundIdleSeconds >= maxRoundIdleTime then
-		roundIdleSeconds = 0
+		onRoundAction()
 		beginNextRound()
 	end
 	
 	if roundIdleSeconds+idleWarnTime > maxRoundIdleTime and roundIdleSeconds < maxRoundIdleTime-0 then
-		displayRoundCountdown()
+		displayRoundCountdown(0)
 	end
 	
 	-- display after 5 seconds into each round
-	if roundIdleSeconds == 5 then
-		displayRoundCountdown()
-	end
+	if roundIdleSeconds == 5  then displayRoundCountdown(5) end
+	if roundIdleSeconds == 15 then displayRoundCountdown(2) end
 end
 
-function displayRoundCountdown()
+function displayRoundCountdown(staytime)
 	local ileft = maxRoundIdleTime - roundIdleSeconds
-	PrintText("Next Round will start in "..ileft.." seconds",20,'FFFFFFFF',0,'centerbottom') 
+	PrintText("Next Round will start in "..ileft.." seconds",20,'FFFFFFFF',staytime,'centerbottom') 
 	WaitTicks(3)
+end
+
+function displayMissions()
+  
+	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+
+--	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Mission', 
+--	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'COMPUTER_UEF_VO', cue = 'UEFComputer_NewExpansion_01389', faction = 'UEF'}}
+	ScenarioFramework.Dialogue(m1)
+
+	local mission = players[GetFocusArmy()].mission
+	
+--	        {ShowFaction = 'Cybran'}'capture'  'capture'
+	
+	ScenarioFramework.Objectives.Basic(
+        'primary',
+        'incomplete',
+        mission:getText(),
+        "detail",
+        ScenarioFramework.Objectives.GetActionIcon(mission.icon),
+        {Category = categories.uel0001}
+    )
+	
 end
 
 function displayRoundBegin()
 	local ileft = maxRoundIdleTime - roundIdleSeconds
 	PrintText("Round "..roundnum.." - Produce Units and Attack. Next Round will begin after "..ileft.." seconds idle",
-		20,'Red',3,'centertop') 
+		20,'Red',6,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
 	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
@@ -1004,7 +1067,11 @@ function displayRoundBegin()
 	local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
 	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'Ops', cue = 'Ops_EarthCom_EarthCom_01425', faction = 'Cybran'}}
 
+	local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
+	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'Ops', cue = 'Ops_EarthCom_EarthCom_01425', faction = 'Cybran'}}
 	
+	--		ScenarioFramework.Dialogue(E01_M01_061)
+
 	-- primary objective: 'UEFComputer_NewExpansion_01390' -- COMPUTER_UEF_VO
 	
 	
@@ -1033,7 +1100,6 @@ end
 -- An Action that delays the next round (fighting, building)
 function onRoundAction()
 	roundIdleSeconds = 0
---	displayRoundCountdown()
 end
 
 
@@ -1043,32 +1109,64 @@ function beginNextRound()
 	roundnum = roundnum +1
 	LOG("A NEW ROUND "..roundnum.." has begun")
 	
-	displayRoundBegin()
 	-- distribute Resources
 	for i, player in players do
-		local reinforcements = math.floor(GetEmpireSize(player.armyName)/3)
+
+		local reinforcements = math.floor(player.empireSize/3)
 		if reinforcements < 3 then reinforcements = 3 end
 		
 		-- bonus card cashin
 		reinforcements = reinforcements + player.nextRoundBonusProfit
 		player.nextRoundBonusProfit = 0
 		player.bonusCardSpawned = false
-		-- TODO: Add continents
-		
+
+		-- Continent resources
+		for i,continent in continents do
+			if continent.owner == player.armyName then
+				LOG(continent.owner.." receives "..continent.ownerBonus.." for "..continent.name)
+				reinforcements = reinforcements + continent.ownerBonus
+			end
+		end
 		player.acu:SRAddUnitResources(reinforcements)
+		
+		-- check Player death
+		checkPlayerDeath(player)
+		checkPlayerWin(player)
 	end
-	-- reset spawning of card
+	
+	-- new round, display it has begun
+	displayRoundBegin()
 end
 
+function checkPlayerDeath(player)
+	if player.empireSize == 0 then
+		player.acu:Kill() -- goodbye ACU
+		player.brain:OnDefeat()
+	end
+end
 
+function checkPlayerWin(player)
+	if player.mission:check() then
+		LOG("MISSION ACCOMPLISHED")
+		for i, pl in players do
+			if pl != player then
+				pl.acu:Kill()
+			end
+		end
+	end
+end
 
 
 function mainThread()
 
+	-- We are in the game!
+	displayMissions()
 	displayRoundBegin()
+
 	while true do
 		checkCountryOwnership()
 		checkEndOfRound()
+--		updateScore()
 		WaitSeconds(1)
 	end
 end
@@ -1088,6 +1186,7 @@ function maintenanceThread()
 	end
 end
 
+--[[
 function garbage__()
 
 		if unit.originalUpdateMovementEffectsOnMotionEventChange == nil then
@@ -1111,7 +1210,7 @@ function garbage__()
 --			dump(unit:GetRallyPoint())
 		end
 end
-
+]]--
 
 function isInside(zone, pos)
 	if  pos[1] <= zone.x1 and pos[1] >= zone.x0 
@@ -1124,4 +1223,121 @@ end
 
 function Pos2Rect(pos, radius)
 	return Rect(pos[1]-radius, pos[3]-radius, pos[1]+radius, pos[3]+radius)
+end
+
+###### bonus cards #########
+
+-- Bonus Card System
+function spawnRandomCard(player)
+	local cardType = cardTypes[math.random(table.getn(cardTypes))];
+	spawnCard(player, cardType)
+	
+end
+
+function spawnCard(player, cardType)
+	
+	if player.bonusCardSpawned == false then
+		player.bonusCardSpawned = true
+
+		if not player.cardSlots then
+			player.cardSlots = {false, false, false, false, false}
+		end
+		for i, slot in player.cardSlots do
+			if slot == false then
+				LOG("Creating Card prop at slot "..i)
+				spawnCardProp(player, cardType, i)
+				break;
+			end
+		end
+	end
+end
+
+function spawnCardProp(player, cardType, i)
+	local acupos = player.acu:GetPosition();
+	acupos[3] = acupos[3] - 5;
+	acupos[1] = acupos[1] - 6;
+
+	local card = CreateUnitHPR(cardType.unit, player.armyName, acupos[1]+2*i, 0, acupos[3], 0,0,0)		
+	local wr = card:CreateWreckageProp(1)
+	
+	card:Destroy()
+	wr.slotNumber = i
+	wr.cardType = cardType
+	player.cardSlots[i] = wr
+	
+	-- what happens if we reclaim?
+	wr.OnReclaimed = function(self) 
+			self.isAlreadyReclaimed = true;
+			local myProfit = 0 
+			
+			-- check for 3 cards of the type
+			if hasCard(player, self.cardType.unit) >= 3 then
+				removeCard(player, self.cardType.unit)
+				removeCard(player, self.cardType.unit)
+				removeCard(player, self.cardType.unit) -- remove the third one too!
+				myProfit = self.cardType.profit
+			end
+			
+			-- check for three different cards
+			local hasAll = true;
+			for i, cardType in cardTypes do
+				if hasCard(player, cardType.unit) == 0 then
+					hasAll = false; -- we dont have this unit - profit is zero
+				end
+			end
+				
+			if myProfit == 0 and hasAll then
+				myProfit = 10;
+				-- remove cards
+				for i, cardType in cardTypes do
+					if(self.cardType.unit != cardType.unit) then
+						removeCard(player, cardType.unit)
+					end
+				end
+			end
+			
+			--- profit assignment
+			LOG("Profit for next round is "..myProfit)
+
+			
+			if myProfit > 0 then -- cashed something in 
+				-- assign profit to next round
+				player.nextRoundBonusProfit = myProfit;
+				player.cardSlots[self.slotNumber] = false -- remove the card
+			else
+				-- respawn prop
+				spawnCardProp(player, self.cardType, self.slotNumber)
+--				spawnCard(player, self.cardType)
+			end
+	end
+	return card;
+end
+
+function hasCard(player, unitType)
+	local hasCounter = 0;
+	for i, slot in player.cardSlots do
+		if slot then
+			if slot.cardType.unit == unitType then
+				hasCounter = hasCounter + 1
+			end
+		end
+	end
+	return hasCounter;
+end
+
+
+function removeCard(player, unitType)
+	local hasCounter = 0;
+	for i, slot in player.cardSlots do
+		if slot then
+			if slot.cardType.unit == unitType then
+				if not slot.isAlreadyReclaimed then -- prevent duplicate removal
+					player.cardSlots[i] = false;
+					slot:Destroy() -- remove wreckage
+				end
+				return;
+			end
+		end
+	end
+	return hasCounter;
 end
