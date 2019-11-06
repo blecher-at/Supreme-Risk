@@ -20,6 +20,44 @@ local executing = false
 local beatTime = 5
 local baseSizeMeters = 400;
 
+
+    function basicSerialize (o)
+      if type(o) == "number" then
+        return tostring(o)
+      else   -- assume it is a string
+        return string.format("%q", o)
+      end
+    end
+
+    function Xsave (name, value, saved)
+	  local str = ""
+      saved = saved or {}       -- initial value
+      str = str..name.." = "
+      if type(value) == "number" or type(value) == "string" then
+        str = str..basicSerialize(value).."\n"
+      elseif type(value) == "table" then
+        if saved[value] then    -- value already saved?
+          str = str..saved[value].."\n"  -- use its previous name
+        else
+          saved[value] = name   -- save name for next time
+          str = str.."{}\n"     -- create a new table
+          for k,v in value do      -- save its fields
+            local fieldname = string.format("%s[%s]", name,
+                                            basicSerialize(k))
+            str = str..Xsave(fieldname, v, saved)
+          end
+        end
+      else
+        --error("cannot save a " .. type(value))
+      end
+	  return str
+    end
+
+	
+function dump(tbl)
+	LOG(Xsave("var",tbl,nil))
+end
+
 function meter(m)
 	return m*0.0512
 end
@@ -105,35 +143,31 @@ local countries = {
 
 local teleportationZones = {
 	{
+		sourceZone = Rect(0,0,300,500), -- redirect if into zone and 
+		targetZone = Rect(700,0,1024,500), -- move order into this zone is issued
 		name		='Alaska',
-		pos			= Rect(0,0,60,500),
-		target 		= Pos(1000,310), 
-		targetRally = Pos(960,315),
-		orientationRequirement = function(orientation) 
-			if orientation[2] <0 then 
-				return true
-			else
-				return false
-			end
-		end
+		teleporterSource = Pos(2,300),
+		teleporterTriggerZone = Rect(0,0,60,500),
+		teleporterDest = Pos(1022,310),
     },
 	{
+		sourceZone = Rect(700,0,1024,500), -- redirect if into zone and 
+		targetZone = Rect(1,1,300,500), -- move order into this zone is issued
 		name		='kamc',
-		pos			= Rect(970,0,1024,500),
-		target 		= Pos(30,300), 
-		targetRally = Pos(70,285),
-		orientationRequirement = function(orientation) 
-			if orientation[2] >0 then return true
-			else return false
-			end
-		end
+		teleporterSource = Pos(1022,310),
+		teleporterTriggerZone = Rect(980,0,1024,500),		
+		teleporterDest = Pos(2,300),
     }
 }
   
 local player = nil;
 
 function OnPopulate()
-  LOG("AAA")
+  LOG("OnPopulate ----------------------------------")
+  
+  -- prevent ACU warpin animation
+  ScenarioInfo.Options['PrebuiltUnits'] = nil
+  
   tblGroup = ScenarioUtils.InitializeArmies()
   for i,acu in tblGroup do
 	LOG(i.." ")
@@ -159,7 +193,7 @@ end
 
 function OnStart(self)
 --	PrintText("KAKAKAAK",20,'FFFFFFFF',20,'center')
-  LOG("AAA")
+  LOG("OnStart -------------------------------")
   LOG("Hello world")
 
   init()
@@ -173,7 +207,12 @@ function init()
 	for index,army in ListArmies() do
 		LOG(index.." "..army.." is playing")
 		
+		#Building Restrictions
+		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
+		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
 	end
+	
+
 end
 
 function initStartUnits()
@@ -216,7 +255,12 @@ function spawnFactory(cdata)
 	u:SetCustomName(name)
 	cdata.factory = u
 --	cdata.ownerId = armyId
-	
+
+	u:AddOnUnitBuiltCallback(function (factory, unit) 
+		LOG(unit:GetEntityId())
+		end
+		, categories.MOBILE)
+
 
 	
 end
@@ -279,9 +323,21 @@ function setAsPresident(country, unit)
 		LOG(country.name.." elected a new president")
 		country.president = unit
 		unit:SetCustomName("President of "..country.name)
+		unit.isPresident = true
 
 		-- stop unit from moving
 		unit:SetImmobile(true)
+		unit:SetUnSelectable(true)
+--		local e = unit:GetElevation()
+--		dump(e)
+		
+--GetNavigator
+--GetRallyPoint
+--CanPathTo		
+		
+--		for index, o in moho.unit_methods do
+--			LOG(index)
+--		end
 		
 		-- only warp if not initial
 		if not unit.isInitialPresident then
@@ -337,27 +393,64 @@ function myInitiateTeleportThread(self, teleporter, location, orientation)
 end
 
 function checkTeleportationZones()
+
+--	sourceZone = Rect(0,0,300,500), -- redirect if into zone and 
+--		targetZone = Rect(700,0,1024,500), -- move order into this zone is issued
+--		name		='Alaska',
+--		teleporterSource = Pos(0,300),
+--		teleporterDest = Pos(1024,310),
+--    },
+
 	for i, zone in teleportationZones do
-		local units = GetUnitsInRect(zone.pos)
+		local units = GetUnitsInRect(zone.sourceZone)
 		if units then
 			for index,unit in units do
 				-- teleport these units
-				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 
-					and zone.orientationRequirement(unit:GetOrientation()) 
+				if not unit:IsDead() and not unit:IsBeingBuilt() and not unit.isPresident and unit:GetWeaponCount() > 0 
 				then
-			
-					local newPosition = unit:GetPosition();
-
-					newPosition[1] = zone.target[1];
-					newPosition[3] = zone.target[3];
+--					local newPosition = unit:GetPosition();
+--					local heading = unit:GetHeading();
+--					dump(heading);
+					--LOG("unit found")
+					-- unit is ordered into the targetZone
+					if isInside(zone.targetZone, unit:GetNavigator():GetGoalPos()) then
+						LOG("unit going to teleport beacon "..zone.name)
+						LOG("original Goal:: ")
+						dump(unit:GetNavigator():GetGoalPos())
+						-- store original Waypoint
+						unit.originalWaypoint = unit:GetNavigator():GetGoalPos()
 					
-					unit.targetRally = zone.targetRally
+						-- redirect to teleport zone
+						--unit:GetNavigator():SetGoal(zone.teleporterSource)
+						--IssueStop({unit})
+						unit:GetNavigator():SetGoal(zone.teleporterSource)
+						--IssueMove({unit}, zone.teleporterSource)
+					end
+				end
+			end
+		end
+		
+		local unitsToTeleport = GetUnitsInRect(Pos2Rect(zone.teleporterSource, 5))
+		if unitsToTeleport then
+			for index,unit in unitsToTeleport do
+				-- teleport these units
+				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 and unit.originalWaypoint
+				then
+					--unit.targetRally = zone.targetRally
 					-- teleport is for free ... shadow economyEvent function
-					unit.CreateEconomyEvent = function () end
-					
+					--unit.CreateEconomyEvent = function () end
 					-- shadow teleport function to issue move afterwards
-					unit.InitiateTeleportThread = myInitiateTeleportThread
-					unit:OnTeleportUnit(unit, newPosition,{0,0,0,1})
+					--unit.InitiateTeleportThread = myInitiateTeleportThread
+					LOG("Warping unit from Zone "..zone.name)
+					Warp(unit, zone.teleporterDest, {0,0,0,1})
+					unit:GetNavigator():SetGoal(unit.originalWaypoint)
+					
+					-- Move to Original Waypoint
+					IssueMove({unit}, unit.originalWaypoint)
+
+					unit.originalWaypoint = nil;
+					
+					--unit:OnTeleportUnit(unit, newPosition,{0,0,0,1})
 					--unit.CreateEconomyEvent = ee -- dont reset, we are async
 				end
 			end
@@ -475,3 +568,41 @@ function jobsThread()
 	end
 end
 
+
+function garbage__()
+
+		if unit.originalUpdateMovementEffectsOnMotionEventChange == nil then
+			unit.originalUpdateMovementEffectsOnMotionEventChange = unit.UpdateMovementEffectsOnMotionEventChange
+			unit.UpdateMovementEffectsOnMotionEventChange = function(self, new, old)
+				self:originalUpdateMovementEffectsOnMotionEventChange(new,old)
+				LOG("New Move Command")
+				local navi = self:GetNavigator()
+				dump(navi:GetGoalPos())
+				
+				
+				if navi.SetGoalOriginal == nil then
+					navi.SetGoalOriginal = navi.SetGoal
+					navi.myUnit = self
+					navi.SetGoal = function (self2, position)
+						self2:SetGoalOriginal(position)
+						LOG("SETGOAL")
+					end
+				end
+			end
+--			dump(unit:GetRallyPoint())
+		end
+end
+
+
+function isInside(zone, pos)
+	if  pos[1] <= zone.x1 and pos[1] >= zone.x0 
+	and pos[3] <= zone.y1 and pos[3] >= zone.y0 then
+		return true
+	else
+		return false
+	end
+end
+
+function Pos2Rect(pos, radius)
+	return Rect(pos[1]-radius, pos[3]-radius, pos[1]+radius, pos[3]+radius)
+end
