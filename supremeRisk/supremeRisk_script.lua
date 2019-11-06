@@ -6,18 +6,18 @@ RestrictedCategories=EXPERIMENTAL,MASSFABRICATION
 END
 --]]
 
-############################################################
-#               S U P R E M E   R I S K                    #
-############################################################
-#
-# A Supreme Commander Modification
-# Map and Scripting 
-# (C) 2007 Stephan Blecher (stephan@blecher.at)
-#
-# Use at your own risk and have lots of fun!
-# Version 8
-#
-############################################################
+-------------------------------------------------------------
+--               S U P R E M E   R I S K                    #
+-------------------------------------------------------------
+--
+-- A Supreme Commander Modification
+-- Map and Scripting 
+-- (C) 2007 Stephan Blecher (stephan@blecher.at)
+--
+-- Use at your own risk and have lots of fun!
+-- Version 8
+--
+-------------------------------------------------------------
 
 
 
@@ -328,9 +328,9 @@ function onSRAddUnitResources(acu, un)
 end
 
 
-################################
-############ init ##############
-################################
+---------------------------------
+------------- init ##############
+---------------------------------
 function OnStart(self)
   LOG("OnStart -------------------------------")
   LOG("Hello world")
@@ -1003,7 +1003,7 @@ function checkTeleportationZones()
 --					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3]+zone.tpoffset)
 --					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3])
 
-#					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
+--					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
 --					if unit:CanPathTo(teleportPos) then 
 
 					--fix ferry bug with transports?
@@ -1288,9 +1288,9 @@ function reassignFactories()
 	end
 end
 
-##########################################
-# Round Functions
-##########################################
+-------------------------------------------
+-- Round Functions
+-------------------------------------------
 
 function checkEndOfRound()
 
@@ -1694,7 +1694,7 @@ function Pos2Rect(pos, radius)
 	return Rect(pos[1]-radius, pos[3]-radius, pos[1]+radius, pos[3]+radius)
 end
 
-###### bonus cards #########
+------- bonus cards #########
 
 -- Bonus Card System
 function spawnRandomCard(player)
