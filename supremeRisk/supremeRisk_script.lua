@@ -111,56 +111,56 @@ local continents =
 	na = {	name='North America',
 		ownerBonus = 5,
 		countries = {
-			{name='Alaska',					pos = {x = 100, y = 285},	owner = "ARMY_1",	walls = nil	},	
-			{name='West United States',		pos = {x = 170, y = 375},	owner = "ARMY_9",	walls = nil	},
-			{name='Eastern United States',	pos = {x = 200, y = 410},	owner = "ARMY_9",	walls = nil	},	
-			{name='Mexico',					pos = {x = 139, y = 455},	owner = "ARMY_9",	walls = nil	},	
-			{name='Alberta',				pos = {x = 150, y = 320},	owner = "ARMY_9",	walls = nil	},		
-			{name='Ontario',				pos = {x = 200, y = 320},	owner = "ARMY_2",	walls = nil	},		
-			{name='Quebec',					pos = {x = 282, y = 330},	owner = "ARMY_2",	walls = nil	},		
-			{name='Northwest Territories',	pos = {x = 150, y = 285},	owner = "ARMY_9",	walls = nil	},			
-			{name='Greenland',				pos = {x = 363, y = 303},	owner = "ARMY_9",	walls = nil	},
+			{name='Alaska',					pos = {x = 100, y = 285}},	
+			{name='West United States',		pos = {x = 170, y = 375}},
+			{name='Eastern United States',	pos = {x = 200, y = 410}},	
+			{name='Mexico',					pos = {x = 139, y = 455}},	
+			{name='Alberta',				pos = {x = 150, y = 320}},		
+			{name='Ontario',				pos = {x = 200, y = 320}},		
+			{name='Quebec',					pos = {x = 282, y = 330}},		
+			{name='Northwest Territories',	pos = {x = 150, y = 285}},			
+			{name='Greenland',				pos = {x = 363, y = 303}},
 		}
 	},
 	sa = {	name='South America',
 		ownerBonus = 2,
 		countries = {
-			{name='Argentinia',				pos = {x = 290, y = 710},	owner = "ARMY_9", },
-			{name='Brasil',					pos = {x = 350, y = 590},	owner = "ARMY_9", startUnits = 7 },	
-			{name='Venezuela',				pos = {x = 250, y = 540},	owner = "ARMY_9", },	
+			{name='Argentinia',				pos = {x = 290, y = 710}},
+			{name='Brasil',					pos = {x = 350, y = 590}},	
+			{name='Venezuela',				pos = {x = 250, y = 540}},	
 		}
 	},
 	af = {	name='Africa',
 		ownerBonus = 3,
 		countries = {	
-			{name='West Africa',			pos = {x = meter(8700), y = meter(10300)},	owner = "ARMY_9", startUnits = 6},
-			{name='Egypt',					pos = {x = 530, y = 497},	owner = "ARMY_2"},
-			{name='Congo',					pos = {x = 522, y = 617},	owner = "ARMY_1"},
-			{name='South Africa',			pos = {x = 560, y = 700},	owner = "ARMY_1"},		
-			{name='East Africa',			pos = {x = 584, y = 632},	owner = "ARMY_1"},		
-			{name='Madagascar',				pos = {x = 619, y = 684},	owner = "ARMY_1"},		
+			{name='West Africa',			pos = {x = meter(8700), y = meter(10300)},},
+			{name='Egypt',					pos = {x = 530, y = 497}},
+			{name='Congo',					pos = {x = 522, y = 617}},
+			{name='South Africa',			pos = {x = 560, y = 700}},		
+			{name='East Africa',			pos = {x = 584, y = 632}},		
+			{name='Madagascar',				pos = {x = 619, y = 684}},		
 		}
 	},
 	eu = {
 		name='Europe',
 		ownerBonus = 5,
 		countries = {
-			{name='Iceland',				pos = {x = 407, y = 330},	owner = "ARMY_1"},
+			{name='Iceland',				pos = {x = 407, y = 330}},
 		}
 	},
 	as = {
 		name='Asia',
 		ownerBonus = 7,
 		countries = {
-			{name='Kamchatka',				pos = {x = 920,	y = 305},	owner = "ARMY_1", walls = circleWalls},
-			{name='China',					pos = {x = 830, y = 490}, owner = "ARMY_1" },
+			{name='Kamchatka',				pos = {x = 920,	y = 305}},
+			{name='China',					pos = {x = 830, y = 490}},
 		}
 	},
 	au = {
 		name='Australia',
 		ownerBonus = 7,
 		countries = {
-			{name='West Australia',			pos = {x = 890,	y = 725},	owner = "ARMY_1"},
+			{name='West Australia',			pos = {x = 890,	y = 725}},
 		}
 	}	
 }
@@ -206,26 +206,29 @@ function OnPopulate()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
   
-	-- Set Camera to show full Map
-	local Camera = import('/lua/SimCamera.lua').SimCamera
-	local cam = Camera("WorldCamera")
-	--  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
-	cam:SetZoom(2000,0)
-
+	zoomOut()
 	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
 
 	LOG("ONPOPULATE END")
 end
 
+function zoomOut()
+	-- Set Camera to show full Map
+	local Camera = import('/lua/SimCamera.lua').SimCamera
+	local cam = Camera("WorldCamera")
+	--  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
+	cam:SetZoom(2000,0)
+end
 function numPlayers()
 	return table.getn(players)
 end
 
 -- acu functions
-function onSRProduceUnit(self)
-	if self.SRUnitsToBuild > 0 then
-		self.SRUnitsToBuild = self.SRUnitsToBuild - 1
-		self:SetProductionPerSecondMass(self.SRUnitsToBuild) -- update UI
+function onSRProduceUnit(acu)
+	if acu.SRUnitsToBuild > 0 then
+		acu.SRUnitsToBuild = acu.SRUnitsToBuild - 1
+		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
+--		LOG("BUILD::"..acu.SRUnitsToBuild)
 		return true
 	else
 		return false
@@ -254,8 +257,9 @@ function OnStart(self)
   initPlayers() 
   initCountryOwnership()
   initStartUnits() -- putting up units and countries
-  initPlayerResources() -- setting up the resources to start with
   initMissions() -- setting up the missions, and assigning them
+  
+  initPlayerResources() -- setting up the resources to start with
 
   initMainThread()
 end
@@ -338,10 +342,13 @@ function initPlayers()
 		LOG("found ACU "..acu:GetArmy())
 	
 		local player = {};
+		player.index = acu:GetArmy();
 		player.acu = acu;
+		
 		player.acu:SetProductionPerSecondMass(0);
 		player.acu:SetProductionPerSecondEnergy(2000);
 		player.acu.SRUnitsToBuild = 0;
+		player.acu.player = player;
 		
 		player.nextRoundBonusProfit = 0; --- card bonuses
 		player.bonusCardSpawned = false;
@@ -378,6 +385,8 @@ function initPlayerResources()
 	-- set Starting Resources depending on owned Countries and # of players
     for i, player in players do
 		local startResources = 50-(numPlayers()*5) - player.empireSize
+		
+		player.build = nil; --statistics
 		player.acu:SRAddUnitResources(startResources)
 	end
 end
@@ -582,6 +591,17 @@ function spawnFactory(cdata)
 		
 		onRoundAction()
 		initUnit(unit)
+		
+		unit.TeleportDrain = nil
+--		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
+		unit.InitiateTeleportThread = myInitiateTeleportThread
+		local x = unit:GetNavigator():GetGoalPos()[1]+2.5;
+		local y = unit:GetNavigator():GetGoalPos()[3];
+		
+		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
+--		IssueMove({unit}, Pos(x,y+1))
+
+		
 		end
 		, categories.MOBILE)
 
@@ -667,8 +687,8 @@ end
 
 function setAsPresident(country, unit)
 
-	local x = country.pos.x+1
-	local y = country.pos.y+4
+	local x = country.pos.x-3
+	local y = country.pos.y+2
 	if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
@@ -1039,7 +1059,8 @@ end
 function checkEndOfRound()
 
 	roundIdleSeconds = roundIdleSeconds + 1
-    Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
+	Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
+	
 
 	if roundIdleSeconds >= maxRoundIdleTime then
 		onRoundAction()
@@ -1067,7 +1088,7 @@ function displayMissions()
 
 --	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Mission', 
 --	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'COMPUTER_UEF_VO', cue = 'UEFComputer_NewExpansion_01389', faction = 'UEF'}}
-	ScenarioFramework.Dialogue(m1)
+--	ScenarioFramework.Dialogue(m1)
 
 	local mission = players[GetFocusArmy()].mission
 	
@@ -1076,14 +1097,14 @@ function displayMissions()
 	ScenarioFramework.Objectives.Basic(
         'primary',
         'incomplete',
-        mission:getText(),
+        'Your mission is to '..mission:getText(),
         "detail",
         ScenarioFramework.Objectives.GetActionIcon(mission.icon),
         {Category = categories.uel0001}
     )
-	
-	PrintText(mission:getText(),20,'FFFFFFFF',5,'center') 
-	WaitSeconds(1)
+
+--	PrintText(mission:getText(),20,'FFFFFFFF',5,'center') 
+--	WaitSeconds(1)
 	
 end
 
@@ -1132,8 +1153,12 @@ end
 
 
 -- An Action that delays the next round (fighting, building)
-function onRoundAction()
-	roundIdleSeconds = 0
+function onRoundAction(start)
+	if start then
+		roundIdleSeconds = start
+	else
+		roundIdleSeconds = 0
+	end
 end
 
 
@@ -1146,22 +1171,26 @@ function beginNextRound()
 	-- distribute Resources
 	for i, player in players do
 
-		local reinforcements = math.floor(player.empireSize/3)
-		if reinforcements < 3 then reinforcements = 3 end
+		player.build = {};
+		player.build.ter = math.floor(player.empireSize/3)
+		if player.build.ter < 3 then player.build.ter = 3 end
 		
 		-- bonus card cashin
-		reinforcements = reinforcements + player.nextRoundBonusProfit
+		player.build.bonus = player.nextRoundBonusProfit
 		player.nextRoundBonusProfit = 0
 		player.bonusCardSpawned = false
 
 		-- Continent resources
+		player.build.cont = 0
 		for i,continent in continents do
 			if continent.owner == player.armyName then
 				LOG(continent.owner.." receives "..continent.ownerBonus.." for "..continent.name)
-				reinforcements = reinforcements + continent.ownerBonus
+				player.build.cont = player.build.cont + continent.ownerBonus
 			end
 		end
-		player.acu:SRAddUnitResources(reinforcements)
+		
+		player.build.total = player.build.ter + player.build.cont + player.build.bonus
+		player.acu:SRAddUnitResources(player.build.total)
 	end
 	
 	-- new round, display it has begun
@@ -1189,6 +1218,94 @@ function checkPlayerWin(player)
 	end
 end
 
+function updateSecondaryMissions()
+	for i, player in players do
+	
+--		LOG(i.." "..player.acu.SRUnitsToBuild)
+
+		if i == GetFocusArmy() then
+			-- only do in own sim state, not for others (this doesnt desync!)
+			
+			local objTitle = 'Reinforce your territories - you can place '..player.acu.SRUnitsToBuild..' units. '
+			if player.build then
+				objTitle = objTitle..'('..player.build.total..' this round, '..player.build.ter..' from territories, '..player.build.cont..' from continents, '..player.build.bonus..' from wreckage)'
+			end
+			
+			
+			if player.buildObjective then
+				if player.acu.SRUnitsToBuild == 0 then
+					-- remove objective
+--		            ScenarioFramework.Objectives.UpdateObjective( objTitle, 'delete', objTitle, player.buildObjective.Tag)
+					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.buildObjective.Tag)
+--					ScenarioFramework.Objectives.DeleteObjective(player.buildObjective, false)
+					player.buildObjective = nil
+				else
+		            ScenarioFramework.Objectives.UpdateObjective( objTitle, 'title', objTitle, player.buildObjective.Tag)
+				end
+			end
+		
+			-- Add secondary objective - use these resources!!
+			if not player.buildObjective and player.acu.SRUnitsToBuild > 0 then
+				player.buildObjective = ScenarioFramework.Objectives.Basic(
+		        '',
+		        'incomplete',
+		        objTitle,
+		        "detail",
+		        ScenarioFramework.Objectives.GetActionIcon("build"),
+		        {Category = categories.uel0106}
+				)
+			end
+			
+			-- warn player if he has still not built his units
+			if player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
+				player.buildObjectiveWarn = true
+				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				ScenarioFramework.Dialogue(m1)		
+			end
+			
+			-- check bonus unit cards
+			if canCashinAny(player) then
+				LOG("We could cash in bonus cards!")
+				-- Add secondary objective - use these resources!!
+				if not player.cardObjective  then
+					player.cardObjective = ScenarioFramework.Objectives.Basic(
+			        '',
+			        'incomplete',
+			        'Reclaim the wreckages near your ACU for Bonus Units. Rightclick to zoom in',
+			        "detail",
+			        ScenarioFramework.Objectives.GetActionIcon("reclaim"),
+			        --{Category = categories.uel0001, Units = {player.acu}}
+			        {Units = {player.acu}}
+					)
+				end
+			else
+				if player.cardObjective then
+					-- remove objective
+					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.cardObjective.Tag)
+					player.cardObjective = nil
+				end
+			end
+			
+			--- show a Liberate a country mission
+			if player.bonusCardSpawned and player.fightObjective then
+				ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.fightObjective.Tag)
+				player.fightObjective = nil
+			end
+			if player.acu.SRUnitsToBuild == 0 and not player.bonusCardSpawned and not player.fightObjective then
+					player.fightObjective = ScenarioFramework.Objectives.Basic(
+			        '',
+			        'incomplete',
+			        'Liberate a territory of your choice to receive bonus wreckage',
+			        "detail",
+			        ScenarioFramework.Objectives.GetActionIcon("kill"),
+			        {Category = categories.ueb0101}
+					)
+				end
+			
+		end
+	end
+end
+
 function checkEndOfGame()
 	for i, player in players do
 		checkPlayerDeath(player)
@@ -1209,6 +1326,7 @@ function mainThread()
 		
 --		updateScore()
 		WaitSeconds(1)
+		updateSecondaryMissions()
 	end
 end
 
@@ -1224,11 +1342,18 @@ function maintenanceThread()
 	while true do
 		checkTeleportationZonesPFWorkaround()
 		WaitSeconds(5)
+		
 	end
 end
 
 --[[
 function garbage__()
+
+		--debug
+		for i, player in players do
+			player.bonusCardSpawned = false 
+			spawnRandomCard(player)
+		end
 
 		if unit.originalUpdateMovementEffectsOnMotionEventChange == nil then
 			unit.originalUpdateMovementEffectsOnMotionEventChange = unit.UpdateMovementEffectsOnMotionEventChange
@@ -1315,7 +1440,7 @@ function spawnCardProp(player, cardType, i)
 			if hasCard(player, self.cardType.unit) >= 3 then
 				removeCard(player, self.cardType.unit)
 				removeCard(player, self.cardType.unit)
-				removeCard(player, self.cardType.unit) -- remove the third one too!
+--				removeCard(player, self.cardType.unit) -- remove the third one too!
 				myProfit = self.cardType.profit
 			end
 			
@@ -1345,6 +1470,10 @@ function spawnCardProp(player, cardType, i)
 				-- assign profit to next round
 				player.nextRoundBonusProfit = myProfit;
 				player.cardSlots[self.slotNumber] = false -- remove the card
+				
+				if player.index == GetFocusArmy() then
+					zoomOut()
+				end
 			else
 				-- respawn prop
 				spawnCardProp(player, self.cardType, self.slotNumber)
@@ -1354,12 +1483,32 @@ function spawnCardProp(player, cardType, i)
 	return card;
 end
 
+function canCashinAny(player)
+	-- check for three different cards
+	local hasAll = true;
+	for i, cardType in cardTypes do
+		if hasCard(player, cardType.unit) >= 3 then
+			return true
+		end
+	
+		if hasCard(player, cardType.unit) == 0 then
+			hasAll = false; -- we dont have this unit - profit is zero
+		end
+	end
+	if hasAll then
+		return true
+	end
+	return false
+end
+
 function hasCard(player, unitType)
 	local hasCounter = 0;
-	for i, slot in player.cardSlots do
-		if slot then
-			if slot.cardType.unit == unitType then
-				hasCounter = hasCounter + 1
+	if player.cardSlots then
+		for i, slot in player.cardSlots do
+			if slot then
+				if slot.cardType.unit == unitType then
+					hasCounter = hasCounter + 1
+				end
 			end
 		end
 	end
@@ -1375,8 +1524,8 @@ function removeCard(player, unitType)
 				if not slot.isAlreadyReclaimed then -- prevent duplicate removal
 					player.cardSlots[i] = false;
 					slot:Destroy() -- remove wreckage
+					return;
 				end
-				return;
 			end
 		end
 	end
