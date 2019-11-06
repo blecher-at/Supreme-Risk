@@ -1,0 +1,36 @@
+![Supreme Risk Banner](promo/signature3.jpg)
+
+# Supreme Risk
+
+Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Alliance Forever, enabling rules from the board game "RISK"
+
+![Supreme Risk Screenshot](promo/Risk%20Screenshots/board.jpeg)
+
+## History
+
+I first wrote this Map back in 2007, and recently picked it up again to make it compatible with modern FA.
+
+## How to Play
+
+TBD
+
+## Files
+
+- Supreme_Risk.v0010 The version compatible with FAF
+- Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
+
+
+## Known Issues (FAF Version)
+
+- Objectives are only shown briefly at the start, need a persistent display
+- Rounds are not clear and should time out.
+- Factories do not pause correctly when no more units are available
+
+## Links
+
+- map editor logs: %APPDATA%\LocalLow\ozonexo3\FAF Map Editor
+- map editor wiki: https://wiki.faforever.com/index.php?title=FA_Forever_Map_Editor#Custom_resources
+
+- location of the map %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010
+
+- cp -R '%USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010' .
