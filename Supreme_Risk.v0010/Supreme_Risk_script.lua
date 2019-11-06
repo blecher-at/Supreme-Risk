@@ -32,14 +32,14 @@ local Utilities = import('/lua/utilities.lua')
 
 --interface utilities
 local UIUtil = import('/lua/ui/uiutil.lua')
-local gameParent = import('/lua/ui/game/gamemain.lua').GetGameParent()
+--local gameParent = import('/lua/ui/game/gamemain.lua').GetGameParent()
 
 local executing = false
 local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 20; -- number of seconds from last round action to begin next round
-local idleWarnTime = 10; -- warn n seconds before end of round
+local idleWarnTime = 30; -- warn n seconds before end of round
 local roundnum = 0;
 local roundTotalTime = 0;
 
@@ -131,7 +131,7 @@ local trees20 = {
 function spawnTrees()
 
     local sx,sy = GetMapSize()
-	local count = 100000
+	local count = 100
 	while count > 0 do
 		local px = math.random(0.0,sx)+math.random()
 		local py =  math.random(0.0,sy)+math.random()
@@ -290,7 +290,7 @@ function OnPopulate()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
   
-	zoomOut()
+	--zoomOut()
 	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
 
 	LOG("ONPOPULATE END")
@@ -301,6 +301,9 @@ function zoomOut()
 	local Camera = import('/lua/SimCamera.lua').SimCamera
 	local cam = Camera("WorldCamera")
 	--  cam:MoveTo(ScenarioUtils.AreaToRect('AREA_1'))
+	
+	--WaitSeconds(10)
+	LOG("ZOOM OUT")
 	cam:SetZoom(2000,0)
 end
 function numPlayers()
@@ -313,6 +316,18 @@ function onSRProduceUnit(acu)
 		acu.SRUnitsToBuild = acu.SRUnitsToBuild - 1
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
 --		LOG("BUILD::"..acu.SRUnitsToBuild)
+
+		-- unpause factories now tha
+		for ci,continent in continents do
+			for i,cdata in continent.countries do		
+			if cdata.factory and cdata.owner == player.armyName then
+				--IssueBuildFactory({cdata.factory}, "uel0106",9999)
+				cdata.factory:SetProductionActive(true);
+				--cdata.factory.onAI = true
+			end
+		end
+	end
+	
 		return true
 	else
 		return false
@@ -344,6 +359,8 @@ function OnStart(self)
   initPlayerResources() -- setting up the resources to start with
 
   initMainThread()
+  zoomOut()
+  
 end
 
 function init()
@@ -358,6 +375,7 @@ function init()
 		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
 		ScenarioFramework.RemoveRestriction(index, categories.ual0106)
 		ScenarioFramework.RemoveRestriction(index, categories.url0106)
+		ScenarioFramework.RemoveRestriction(index, categories.ueb0301)		
 	end
 	
 end
@@ -731,7 +749,7 @@ function spawnFactory(cdata)
 	local y = cdata.pos.y
 	local name = cdata.name
 	local army = cdata.owner
-	local name = 'ueb0101'
+	local name = 'ueb0301'
 	
 --	if GetArmyBrain(cdata.owner):GetFactionIndex() == 2 then
 --		name = 'uab0101';
@@ -749,28 +767,51 @@ function spawnFactory(cdata)
 	u:SetCanBeKilled(true)
 	u:SetIsValidTarget(false)
 	u:SetDoNotTarget(true)
-	u:SetMaxHealth(1)
-	u:SetHealth(nil,1)
+	u:SetMaxHealth(10000)
+	u:SetHealth(nil,10000)
 	u:SetRegenRate(1)
 	u:SetIntelRadius('Vision', meter(baseSizeMeters*7))
 	u:SetCustomName(name)
 	cdata.factory = u
 --	cdata.ownerId = armyId
 
+	--u.OnStopBuild = function(factory, unit) 
+	--	onRoundAction()
+	--	initUnit(unit)
+	--	Warp(unit, {x+0,0,y+5},{0,0,0,1})
+	--end
+
 	u:AddOnUnitBuiltCallback(function (factory, unit) 
-		--debug: LOG("Unit has been Built: "..unit:GetEntityId())
+		LOG("Unit has been Built in "..cdata.name..": "..unit:GetEntityId())
 		
 		onRoundAction()
 		initUnit(unit)
 		
-		unit.TeleportDrain = nil
+		--local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+10,cdata.pos.y+10, 0,0,0)
+		--initUnit(unit)
+
+--		unit.TeleportDrain = nil
 --		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
-		unit.InitiateTeleportThread = myInitiateTeleportThread
-		local x = unit:GetNavigator():GetGoalPos()[1]+3;
-		local y = unit:GetNavigator():GetGoalPos()[3];
+--		unit.InitiateTeleportThread = myInitiateTeleportThread
+		local ux = unit:GetNavigator():GetGoalPos()[1];
+		local uy = unit:GetNavigator():GetGoalPos()[3];
 		
-		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
---		IssueMove({unit}, Pos(x,y+1))
+		-- this causes factory to self-destruct?!
+		--unit:OnTeleportUnit(unit, {x,0,y+5},{0,0,0,1})
+		--IssueStop({unit}) 
+        --WaitSeconds( 0.1 )
+		--unit:SetImmobile(true)
+		--Warp(unit, {x+0,0,y+5},{0,0,0,1})
+		--IssueMove({unit}, Pos(ux,uy))
+		--return false
+        --WaitSeconds( 0.1 )
+		--IssueStop({unit}) 
+		--unit:GetNavigator():SetGoal(Pos(ux,uy))
+		--unit:GetNavigator():SetSpeedThroughGoal(true)
+        --unit:GetNavigator():SetGoal(Pos(x,y+15))
+        --Warp(unit, {x+4,0,y+5},{0,0,0,1})
+        --WaitSeconds( 0.1 )
+		--unit:SetImmobile(false)
 
 		
 		end
@@ -783,13 +824,17 @@ function spawnFactory(cdata)
 		local player = players[self:GetArmy()]
 
 		if player.acu:SRProduceUnit() then 
-			--debug: LOG(self:GetArmy().." start building ")
+			LOG(self:GetArmy().." start building ")
 			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
 		else
-			--LOG("Build limit reached in Factory")
---			WaitTicks(50)
+			LOG("Build limit reached in Factory")
 			unitBeingBuilt:Kill()
+			IssueStop({cdata.factory});
+			--cdata.factory:SetPaused(true);
+			--cdata.factory:SetProductionActive(false);
+
+--			WaitTicks(50)
 		end
 	end
 		
@@ -802,11 +847,11 @@ end
 
 function initUnit(unit)
 
-	unit:AddOnKilledCallback(
-	function(self) 
-		LOG("Unit died")
-		onRoundAction() 
-	end) -- round is delayed on kills
+--	unit:AddOnKilledCallback(
+--	function(self) 
+--		LOG("Unit died")
+--		onRoundAction() 
+--	end) -- round is delayed on kills
 end
 
 function round(num)
@@ -905,7 +950,8 @@ function setAsPresident(country, unit)
 		unit.TeleportDrain = nil
 		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
 		unit.InitiateTeleportThread = myInitiateTeleportThread
-		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
+		-- is this causing a bug? unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
+		
 --		Warp(unit,{country.pos.x,0,country.pos.y+6,0},{0,0,0,1})
 		end
 	end
@@ -913,31 +959,32 @@ end
 
 
 function myInitiateTeleportThread(self, teleporter, location, orientation)
+	LOG("Teleport start")
         self.UnitBeingTeleported = self
         self:SetImmobile(true)
 
         self:PlayUnitSound('TeleportStart')
         self:PlayUnitAmbientSound('TeleportLoop')
 
-        # create teleport charge effect
-        self:PlayTeleportChargeEffects()
+        -- create teleport charge effect
+        -- self:PlayTeleportChargeEffects()
         self:PlayTeleportOutEffects()
         self:CleanupTeleportChargeEffects()
         WaitSeconds( 0.1 )
-        #Teleport Sound
+        --Teleport Sound
         self:SetWorkProgress(0.0)
         Warp(self, location, orientation)
         self:PlayTeleportInEffects()
         WaitSeconds( 0.1 ) # Perform cooldown Teleportation FX here
-    #Landing Sound
-    #LOG('DROP')
+    --Landing Sound
+    --LOG('DROP')
     self:StopUnitAmbientSound('TeleportLoop')
     self:PlayUnitSound('TeleportEnd')
     self:SetImmobile(false)
     self.UnitBeingTeleported = nil
     self.TeleportThread = nil
 
---debug	LOG("Teleport done")
+	LOG("Teleport done")
 	if self.targetRally then
 		IssueMove( {self}, self.targetRally )
 	end
@@ -1119,7 +1166,7 @@ function checkCountryOwnership()
 						currentOwnerIndex = getPlayerByName(cdata.owner).index
 						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
 							-- own or allied unit
-							unit:SetSpeedMult(8) -- reset for successful liberators
+							unit:SetSpeedMult(30) -- reset for successful liberators
 							unit:SetAccMult(5)
 							unit:SetTurnMult(5)
 							
@@ -1157,22 +1204,24 @@ function checkCountryOwnership()
 										end
 										
 										if cdata.restingpos>10 then
-											unit:OnTeleportUnit(unit, {cdata.pos.x-15+cdata.restingpos,0,cdata.pos.y-6},{0,0,0,1})
+											--unit:OnTeleportUnit(unit, {cdata.pos.x-15+cdata.restingpos,0,cdata.pos.y-6},{0,0,0,1})
 										else
-											unit:OnTeleportUnit(unit, {cdata.pos.x-5+cdata.restingpos,0,cdata.pos.y-4},{0,0,0,1})										
+											--unit:OnTeleportUnit(unit, {cdata.pos.x-5+cdata.restingpos,0,cdata.pos.y-4},{0,0,0,1})										
 										end
-										if cdata.restingpos == 0 then
-											unit:SetCustomName("resting - moving next round again") --Citizen of "..cdata.name)
-										else
-											unit:SetCustomName("resting") --Citizen of "..cdata.name)
-										end
-										unit.isResting = true;
+										
+										--if cdata.restingpos == 0 then
+										--	unit:SetCustomName("resting - moving next round again") --Citizen of "..cdata.name)
+										--else
+										--	unit:SetCustomName("resting") --Citizen of "..cdata.name)
+										--end
+										--unit.isResting = true;
 									end
 								end
 								
 							end
 							
 							if not presidentIsAlive(cdata) then
+							LOG("President of "..cdata.name.." is dead")
 								setAsPresident(cdata, unit)
 							end
 							
@@ -1193,7 +1242,7 @@ function checkCountryOwnership()
 			local friendlyUnits = 0;
 			for index, counter in armycounters do
 				--LOG("player "..index.." "..getArmyName(index)..": "..counter.." found in "..cdata.name.." ("..cdata.owner..")");
-				if currentOwnerIndex and IsAlly(index,currentOwnerIndex) then
+				if currentOwnerIndex and IsAlly(index, currentOwnerIndex) then
 					friendlyUnits = friendlyUnits + counter
 					cdata.friendlyUnits = friendlyUnits
 				else
@@ -1201,16 +1250,20 @@ function checkCountryOwnership()
 					enemyArmy = getArmyName(index)
 					enemyArmyId = index
 				end
+
+				--LOG("player "..index.." "..getArmyName(index)..": friendlyUnits"..friendlyUnits.." found in "..cdata.name.." ("..cdata.owner..")");
+				--LOG("player "..index.." "..getArmyName(index)..": enemyUnits"..enemyUnits.." found in "..cdata.name.." ("..cdata.owner..")");
 		    end
 			
 			if enemyUnits > 0 then
+				LOG(cdata.name.." has enemies - destroying factory")
 				-- kill factory
 				if cdata.factory then
+					setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
 					cdata.factory:SetCanBeKilled(true)
 					cdata.factory:Kill()
 					cdata.factory=nil
 				end
---				setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
 				cdata.isAttacked = true
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
@@ -1226,6 +1279,7 @@ function checkCountryOwnership()
 				cdata.conqueredThisRound = true;
 			end
 			if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
+				LOG(cdata.name.." has no owner")
 				cdata.owner = "ARMY_9"
 				cdata.factoryOwnershipChanged = true;
 				cdata.conqueredThisRound = true;			
@@ -1262,6 +1316,7 @@ function setFactoryName(country, text)
 end
 
 function respawnFactory(c)
+	LOG("respawnFactory "..c.name)
 	if c.factory != nil then
 		local f = c.factory
 		c.factory = nil;
@@ -1271,8 +1326,8 @@ function respawnFactory(c)
 	end
 	
 	WaitSeconds(2)
+	--LOG("SPAWNING FACTORY in "..c.name.." - "..string.format("bool: %t", c.isAttacked))
 	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
-		LOG("SPAWNING FACTORY")
 		spawnFactory(c)
 		c.factoryOwnershipChanged = false
 	end
@@ -1281,7 +1336,9 @@ end
 function reassignFactories()
 	for ci,continent in continents do
 		for i,c in continent.countries do
-			if c.factoryOwnershipChanged == true or c.factoryOwnershipChanged == nil or (c.factory and c.factory:IsDead()) or not c.factory then
+			local dead = c.factory == nil or c.factory:IsDead()
+			if c.factoryOwnershipChanged == true then
+				LOG("REASSIGNING FACTORY TO OWNER "..c.name)
 				ForkThread(respawnFactory,c)
 			end
 		end
@@ -1309,8 +1366,8 @@ function checkEndOfRound()
 	end
 	
 	-- display after 5 seconds into each round
-	if roundIdleSeconds == 5  then displayRoundCountdown(5) end
-	if roundIdleSeconds == 15 then displayRoundCountdown(2) end
+	--if roundIdleSeconds == 5  then displayRoundCountdown(5) end
+	--if roundIdleSeconds == 15 then displayRoundCountdown(2) end
 end
 
 function displayRoundCountdown(staytime)
@@ -1321,16 +1378,20 @@ end
 
 function displayMissions()
   
-	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+	local mission = players[GetFocusArmy()].mission
 
 --	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Mission', 
 --	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'COMPUTER_UEF_VO', cue = 'UEFComputer_NewExpansion_01389', faction = 'UEF'}}
 --	ScenarioFramework.Dialogue(m1)
 
-	local mission = players[GetFocusArmy()].mission
 	
 --	        {ShowFaction = 'Cybran'}'capture'  'capture'
 	if mission then
+		--PrintText(mission,30,'FFFFFFFF',staytime,'centertop') 
+		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: '..mission:getText()..'', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+--		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild.." units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+		ScenarioFramework.Dialogue(m1)		
+
 	ScenarioFramework.Objectives.Basic(
         'primary',
         'incomplete',
@@ -1347,7 +1408,7 @@ end
 function displayRoundBegin()
 	local ileft = maxRoundIdleTime - roundIdleSeconds
 	PrintText("Round "..roundnum.." - Produce Units and Attack. Next Round will begin after "..ileft.." seconds idle",
-		20,'Red',6,'centertop') 
+		20,'Red',30,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
 	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
@@ -1492,7 +1553,7 @@ function checkPlayerDeath(player)
 end
 
 function checkPlayerWin(player)
---	LOG("checking win on "..player.mission:getText())
+	LOG("checking win on "..player.mission:getText())
 	if player.mission:check() and not player.acu:IsDead() then
 		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',5,'center') 
 
@@ -1565,7 +1626,7 @@ function updateSecondaryMissions()
 			-- warn player if he has still not built his units
 			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
 				player.buildObjectiveWarn = true
-				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
 				ScenarioFramework.Dialogue(m1)		
 			end
 			
@@ -1604,7 +1665,7 @@ function updateSecondaryMissions()
 			        'Liberate a territory of your choice to receive bonus wreckage',
 			        "detail",
 			        ScenarioFramework.Objectives.GetActionIcon("kill"),
-			        {Category = categories.ueb0101}
+			        {Category = categories.ueb0301}
 					)
 			end
 			
@@ -1615,7 +1676,7 @@ function updateSecondaryMissions()
 					'',
 			        "detail",
 			        ScenarioFramework.Objectives.GetActionIcon("build"),
-			        {Category = categories.ueb0101}
+			        {Category = categories.ueb0301}
 					)
 			end
 			if player.acu.SRUnitsToBuild == 0 and player.previewObjective then
@@ -1642,6 +1703,8 @@ function mainThread()
 	-- We are in the game!
 	displayMissions()
 	displayRoundBegin()
+
+	zoomOut()
 
 	while true do
 		checkCountryOwnership()
