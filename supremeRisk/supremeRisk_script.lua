@@ -160,7 +160,7 @@ local continents =
 		name='Australia',
 		ownerBonus = 7,
 		countries = {
-			{name='West Australia',				pos = {x = 830,	y = 905},	owner = "ARMY_1"},
+			{name='West Australia',			pos = {x = 890,	y = 725},	owner = "ARMY_1"},
 		}
 	}	
 }
@@ -235,7 +235,9 @@ end
 function onSRAddUnitResources(acu, un)
 --	acu.SRUnitsToBuild = acu.SRUnitsToBuild + un
 	acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
-	acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
+	if not acu:IsDead() then
+		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
+	end
 end
 
 
@@ -250,6 +252,7 @@ function OnStart(self)
   init()
 --  initFactories()
   initPlayers() 
+  initCountryOwnership()
   initStartUnits() -- putting up units and countries
   initPlayerResources() -- setting up the resources to start with
   initMissions() -- setting up the missions, and assigning them
@@ -268,6 +271,34 @@ function init()
 	
 end
 
+-- randomly distribute counties among players
+function initCountryOwnership()
+	local countries = {};
+	for ci,continent in continents do
+		LOG("Setting up "..continent.name)
+		for i,cdata in continent.countries do
+			table.insert(countries, cdata)
+		end
+	end
+	
+	local countryNum = table.getn(countries)
+	local playerNum = table.getn(players)
+	
+	while table.getn(countries) > 0 do
+		for i, player in players do
+			local randomI = math.random(table.getn(countries))
+			local randomC = countries[randomI]
+		
+			if randomC then
+				LOG("removing/assiging "..randomC.name)
+				randomC.owner = player.armyName;
+				table.remove(countries, randomI)
+			end
+		end
+	end
+	LOG(countryNum)
+	
+end
 function initStartUnits()
 	local yoffset = 6;
 	for ci,continent in continents do
@@ -417,7 +448,7 @@ function addMissionContinent(cc)
 				-- check number first
 				continentCount = 0
 				for i, continent in continents do
-					if continent.owner == self.owner then
+					if continent.owner == self.owner.armyName then
 						continentCount = continentCount + 1
 					end
 				end
@@ -426,7 +457,7 @@ function addMissionContinent(cc)
 				end
 			
 				for i, continent in self.reqContinents do
-					if continent != 'any' and continent.owner != self.owner then
+					if continent != 'any' and continent.owner != self.owner.armyName then
 						return false
 					end
 				end
@@ -450,7 +481,7 @@ function addMissionCountries(_empireSize, _minUnits)
 				local matchingCountries = 0
 				for ci,continent in continents do
 					for i,country in continent.countries do		
-						if country.owner == self.owner and country.friendlyUnits >= self.minUnits then
+						if country.owner == self.owner.armyName and country.friendlyUnits >= self.minUnits then
 							matchingCountries = matchingCountries + 1
 						end
 					end
@@ -547,7 +578,7 @@ function spawnFactory(cdata)
 --	cdata.ownerId = armyId
 
 	u:AddOnUnitBuiltCallback(function (factory, unit) 
-		LOG("Unit has been Built: "..unit:GetEntityId())
+		--debug: LOG("Unit has been Built: "..unit:GetEntityId())
 		
 		onRoundAction()
 		initUnit(unit)
@@ -561,7 +592,7 @@ function spawnFactory(cdata)
 		local player = players[self:GetArmy()]
 
 		if player.acu:SRProduceUnit() then 
-			LOG(self:GetArmy().." start building ")
+			--debug: LOG(self:GetArmy().." start building ")
 			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
 		else
@@ -990,7 +1021,7 @@ function reassignFactories()
 					local f = c.factory
 					c.factory = nil;
 					f:SetCanBeKilled(true)
-					f:Kill()
+					if not f:IsDead() then f:Kill() end
 					WaitSeconds(3)
 				end
 				WaitSeconds(2)
@@ -1050,6 +1081,9 @@ function displayMissions()
         ScenarioFramework.Objectives.GetActionIcon(mission.icon),
         {Category = categories.uel0001}
     )
+	
+	PrintText(mission:getText(),20,'FFFFFFFF',5,'center') 
+	WaitSeconds(1)
 	
 end
 
@@ -1128,10 +1162,6 @@ function beginNextRound()
 			end
 		end
 		player.acu:SRAddUnitResources(reinforcements)
-		
-		-- check Player death
-		checkPlayerDeath(player)
-		checkPlayerWin(player)
 	end
 	
 	-- new round, display it has begun
@@ -1141,21 +1171,30 @@ end
 function checkPlayerDeath(player)
 	if player.empireSize == 0 then
 		player.acu:Kill() -- goodbye ACU
-		player.brain:OnDefeat()
+--		player.brain:OnDefeat()
 	end
 end
 
 function checkPlayerWin(player)
+--	LOG("checking win on "..player.mission:getText())
 	if player.mission:check() then
-		LOG("MISSION ACCOMPLISHED")
+		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',5,'center') 
+
 		for i, pl in players do
 			if pl != player then
 				pl.acu:Kill()
 			end
 		end
+		WaitSeconds(500)
 	end
 end
 
+function checkEndOfGame()
+	for i, player in players do
+		checkPlayerDeath(player)
+		checkPlayerWin(player)
+	end
+end
 
 function mainThread()
 
@@ -1166,6 +1205,8 @@ function mainThread()
 	while true do
 		checkCountryOwnership()
 		checkEndOfRound()
+		checkEndOfGame()
+		
 --		updateScore()
 		WaitSeconds(1)
 	end
