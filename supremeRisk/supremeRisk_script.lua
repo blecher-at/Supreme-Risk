@@ -51,7 +51,7 @@ local player = nil;
 function OnPopulate()
   LOG("AAA")
   ScenarioUtils.InitializeArmies()
-  --ScenarioFramework.SetPlayableArea('AREA_1' , false)
+  ScenarioFramework.SetPlayableArea('AREA_1' , false)
 end
 
 function OnStart(self)
