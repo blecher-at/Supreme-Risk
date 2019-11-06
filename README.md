@@ -1,3 +1,4 @@
+![Supreme Risk Banner](promo/signature3.jpg)
 
 # Supreme Risk
 
@@ -21,9 +22,9 @@ TBD
 
 ## Links
 
-map editor logs: %APPDATA%\LocalLow\ozonexo3\FAF Map Editor
-map editor wiki: https://wiki.faforever.com/index.php?title=FA_Forever_Map_Editor#Custom_resources
+- map editor logs: %APPDATA%\LocalLow\ozonexo3\FAF Map Editor
+- map editor wiki: https://wiki.faforever.com/index.php?title=FA_Forever_Map_Editor#Custom_resources
 
-location of the map %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010
+- location of the map %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010
 
-cp -R 'C:\Users\blecher\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010' .
+- cp -R '%USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010' .
