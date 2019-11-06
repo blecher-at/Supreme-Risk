@@ -146,14 +146,14 @@ local teleportationZones = {
 		sourceZone = Rect(0,0,350,500), -- redirect if into zone and 
 		targetZone = Rect(700,0,1024,500), -- move order into this zone is issued
 		name		='Alaska',
-		teleporterSource = Pos(2,300),
-		teleporterDest = Pos(1021,308),
+		teleporterSource = Pos(1,303),
+		teleporterDest = Pos(1021,307),
     },
 	{
 		sourceZone = Rect(700,0,1024,500), -- redirect if into zone and 
 		targetZone = Rect(1,1,300,500), -- move order into this zone is issued
 		name		='kamc',
-		teleporterSource = Pos(1022,310),
+		teleporterSource = Pos(1022,305),
 		teleporterDest = Pos(4,300),
     }
 }
@@ -226,7 +226,7 @@ function initStartUnits()
 		
 local i = 0		
 	-- debug spawn some units
-	while i < 40 do
+	while i < 150 do
 	unit = CreateUnitHPR('uel0106', "ARMY_1",50,0,300, 0,0,0)
 	i = i+1
 	end
@@ -296,6 +296,7 @@ end
 function initMainThread()
 	ForkThread(mainThread)
 	ForkThread(jobsThread)
+	ForkThread(maintenanceThread)
 end
 
 function getArmyName(unit)
@@ -422,9 +423,9 @@ function checkTeleportationZones()
 					--LOG("unit found")
 					-- unit is ordered into the targetZone
 					if isInside(zone.targetZone, unit:GetNavigator():GetGoalPos()) then
-						LOG("unit going to teleport beacon "..zone.name)
-						LOG("original Goal:: ")
-						dump(unit:GetNavigator():GetGoalPos())
+--						LOG("unit going to teleport beacon "..zone.name)
+--						LOG("original Goal:: ")
+--						dump(unit:GetNavigator():GetGoalPos())
 						-- store original Waypoint
 						unit.originalWaypoint = unit:GetNavigator():GetGoalPos()
 					
@@ -438,30 +439,59 @@ function checkTeleportationZones()
 			end
 		end
 		
-		local unitsToTeleport = GetUnitsInRect(Pos2Rect(zone.teleporterSource, 5))
+		local unitsToTeleport = GetUnitsInRect(Pos2Rect(zone.teleporterSource, 12))
 		if unitsToTeleport then
 			for index,unit in unitsToTeleport do
 				-- teleport these units
 				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 and unit.originalWaypoint
 				then
 					--unit.targetRally = zone.targetRally
+					--unit.targetRally = zone.targetRally
 					-- teleport is for free ... shadow economyEvent function
 					--unit.CreateEconomyEvent = function () end
 					-- shadow teleport function to issue move afterwards
 					--unit.InitiateTeleportThread = myInitiateTeleportThread
-					LOG("Warping unit from Zone "..zone.name)
-					local rp = 2.5
+					local rp = 2
+							
 					local teleportPos = Pos(zone.teleporterDest[1]+math.random(-rp, rp),zone.teleporterDest[3]+math.random(-rp, rp))
+--					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3]+zone.tpoffset)
 --					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3])
-					Warp(unit, teleportPos, {0,1,0,0})
 
-					-- Move to Original Waypoint
-					unit:GetNavigator():SetGoal(unit.originalWaypoint)					
-					IssueMove({unit}, unit.originalWaypoint)
-					unit.originalWaypoint = nil;
-					
+					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
+--					if unit:CanPathTo(teleportPos) then 
+						Warp(unit, teleportPos, unit:GetOrientation())
+						WaitSeconds(0.2)
+						
+						-- Move to Original Waypoint
+						unit:GetNavigator():SetGoal(unit.originalWaypoint)					
+						IssueMove({unit}, unit.originalWaypoint)
+						unit.wayPointAfterTeleport = unit.originalWaypoint
+						unit.originalWaypoint = nil;
+						unit.lastTeleportZoneUsed = zone;
+						unit.teleporterStaleCounter = 0;
+--					end
 					--unit:OnTeleportUnit(unit, newPosition,{0,0,0,1})
 					--unit.CreateEconomyEvent = ee -- dont reset, we are async
+				end
+			end
+		end
+		
+	end
+end
+
+function checkTeleportationZonesPFWorkaround()
+	-- Help the bugged pathfinding a little...
+	for i, zone in teleportationZones do
+		local staleUnits = GetUnitsInRect(Pos2Rect(zone.teleporterDest, 5))
+		if staleUnits then
+			for index,unit in staleUnits do
+				if unit.wayPointAfterTeleport and unit.lastTeleportZoneUsed == zone and unit.teleporterStaleCounter < 50 then
+						-- Move to Original Waypoint
+						unit:GetNavigator():SetGoal(unit.wayPointAfterTeleport)					
+						IssueMove({unit}, unit.wayPointAfterTeleport)
+						unit.teleporterStaleCounter = unit.teleporterStaleCounter+1
+						WaitSeconds(0)
+						LOG("Unit path reassigned the "..unit.teleporterStaleCounter..". time")
 				end
 			end
 		end
@@ -578,6 +608,12 @@ function jobsThread()
 	end
 end
 
+function maintenanceThread()
+	while true do
+		checkTeleportationZonesPFWorkaround()
+		WaitSeconds(5)
+	end
+end
 
 function garbage__()
 
