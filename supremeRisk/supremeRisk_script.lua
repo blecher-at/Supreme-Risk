@@ -143,20 +143,18 @@ local countries = {
 
 local teleportationZones = {
 	{
-		sourceZone = Rect(0,0,300,500), -- redirect if into zone and 
+		sourceZone = Rect(0,0,350,500), -- redirect if into zone and 
 		targetZone = Rect(700,0,1024,500), -- move order into this zone is issued
 		name		='Alaska',
 		teleporterSource = Pos(2,300),
-		teleporterTriggerZone = Rect(0,0,60,500),
-		teleporterDest = Pos(1022,310),
+		teleporterDest = Pos(1021,308),
     },
 	{
 		sourceZone = Rect(700,0,1024,500), -- redirect if into zone and 
 		targetZone = Rect(1,1,300,500), -- move order into this zone is issued
 		name		='kamc',
 		teleporterSource = Pos(1022,310),
-		teleporterTriggerZone = Rect(980,0,1024,500),		
-		teleporterDest = Pos(2,300),
+		teleporterDest = Pos(4,300),
     }
 }
   
@@ -225,6 +223,13 @@ function initStartUnits()
 		spawnCapital(cdata)
 --		spawnFactory(cdata)
 	end
+		
+local i = 0		
+	-- debug spawn some units
+	while i < 40 do
+	unit = CreateUnitHPR('uel0106', "ARMY_1",50,0,300, 0,0,0)
+	i = i+1
+	end
 			
 end
 function spawnCapital(cdata)
@@ -271,9 +276,11 @@ end
 
 function createWall(army,x,y)
 		local u = CreateUnitHPR('ueb5101', army, x,y,y, 0,0,0)
-		u:SetCanBeKilled(true)
-        u:CreateWreckageProp(0)
-        u:Destroy()
+		u:SetCanBeKilled(false)
+--        u:CreateWreckageProp(1)
+--        u:Destroy()
+		u:EnableUnitIntel('Cloak')
+--		u:DisableUnitIntel('Vision')
 	
 
 end
@@ -311,8 +318,8 @@ end
 
 function setAsPresident(country, unit)
 
-	local x = country.pos.x-2
-	local y = country.pos.y+5
+	local x = country.pos.x+1
+	local y = country.pos.y+4
 	if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
@@ -328,6 +335,7 @@ function setAsPresident(country, unit)
 		-- stop unit from moving
 		unit:SetImmobile(true)
 		unit:SetUnSelectable(true)
+--		unit:SetElevation(200)
 --		local e = unit:GetElevation()
 --		dump(e)
 		
@@ -442,12 +450,14 @@ function checkTeleportationZones()
 					-- shadow teleport function to issue move afterwards
 					--unit.InitiateTeleportThread = myInitiateTeleportThread
 					LOG("Warping unit from Zone "..zone.name)
-					Warp(unit, zone.teleporterDest, {0,0,0,1})
-					unit:GetNavigator():SetGoal(unit.originalWaypoint)
-					
-					-- Move to Original Waypoint
-					IssueMove({unit}, unit.originalWaypoint)
+					local rp = 2.5
+					local teleportPos = Pos(zone.teleporterDest[1]+math.random(-rp, rp),zone.teleporterDest[3]+math.random(-rp, rp))
+--					local teleportPos = Pos(zone.teleporterDest[1],zone.teleporterDest[3])
+					Warp(unit, teleportPos, {0,1,0,0})
 
+					-- Move to Original Waypoint
+					unit:GetNavigator():SetGoal(unit.originalWaypoint)					
+					IssueMove({unit}, unit.originalWaypoint)
 					unit.originalWaypoint = nil;
 					
 					--unit:OnTeleportUnit(unit, newPosition,{0,0,0,1})
