@@ -113,14 +113,74 @@ local countries = {
 		owner = "ARMY_1",
 		walls = circleWalls;
 	},	
-	{	name='West Africa',
-		pos = {
-			x = meter(8700), 
-			y = meter(10300)
-		},
+	
+	-- NORTH AMERICA
+	{	name='North States',
+		pos = {x = 170, y = 375},
 		owner = "ARMY_1",
+		walls = nil
+	},
+	{	name='South States',
+		pos = {x = 200, y = 410},
+		owner = "ARMY_1",
+		walls = nil
+	},	
+	{	name='Mexico',
+		pos = {x = 139, y = 455},
+		owner = "ARMY_1",
+		walls = nil
+	},	
+	-- SOUTH AMERICA
+	{	name='Argentinia',
+		pos = {x = 290, y = 710},
+		owner = "ARMY_1",
+		walls = nil
+	},
+	{	name='Brasil',
+		pos = {x = 350, y = 590},
+		owner = "ARMY_1",
+		walls = nil,
+		startUnits = 7
+	},	
+	{	name='Venezuela',
+		pos = {x = 250, y = 540},
+		owner = "ARMY_1",
+		walls = nil
+	},	
+	
+	-- AFRICA
+	{	name='West Africa',
+		pos = {x = meter(8700), y = meter(10300)},
+		owner = "ARMY_9",
+		walls = circleWalls,
+		startUnits = 6
+	},
+	{	name='Egypt',
+		pos = {x = 530, y = 497},
+		owner = "ARMY_9",
 		walls = circleWalls
 	},
+	{	name='Congo',
+		pos = {x = 522, y = 617},
+		owner = "ARMY_1",
+		walls = circleWalls
+	},	
+	{	name='South Africa',
+		pos = {x = 560, y = 700},
+		owner = "ARMY_1",
+		walls = circleWalls
+	},		
+	{	name='East Africa',
+		pos = {x = 584, y = 632},
+		owner = "ARMY_1",
+		walls = circleWalls
+	},		
+	{	name='Madagascar',
+		pos = {x = 619, y = 684},
+		owner = "ARMY_1",
+		walls = circleWalls
+	},		
+	
 	
 		{	name='Kamchatka',
 		pos = {
@@ -218,7 +278,14 @@ function initStartUnits()
 	for i,cdata in countries do
 		-- Spawn one unit per country
 		setAsPresident(cdata, nil)
---		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
+		
+		if cdata.startUnits then
+			local ii = 0
+			while ii < cdata.startUnits do
+				CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+10,cdata.pos.y+yoffset, 0,0,0)
+				ii = ii+1
+			end
+		end
 --		local u = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x+2,cdata.pos.y+yoffset,cdata.pos.y+yoffset, 0,0,0)
 		spawnCapital(cdata)
 --		spawnFactory(cdata)
@@ -253,10 +320,10 @@ function spawnFactory(cdata)
 	u:SetAllWeaponsEnabled(false)		
 	u:SetCanBeKilled(true)
 	u:SetDoNotTarget(true)
-	u:SetMaxHealth(1000)
-	u:SetHealth(nil,1000)
+	u:SetMaxHealth(1)
+	u:SetHealth(nil,1)
 	u:SetRegenRate(1)
-	u:SetIntelRadius('Vision', meter(baseSizeMeters*3))
+	u:SetIntelRadius('Vision', meter(baseSizeMeters*7))
 	u:SetCustomName(name)
 	cdata.factory = u
 --	cdata.ownerId = armyId
@@ -271,8 +338,8 @@ function spawnFactory(cdata)
 	u.OnStartBuild = function(self, unitBeingBuilt, order)
 		dump(unitBeingBuilt)
 		LOG("Start building ")
-		IssueStop(self)
-		--self:OnStartBuildOriginal(unitBeingBuilt, order)
+		--IssueStop(self)
+		self:OnStartBuildOriginal(unitBeingBuilt, order)
 	end
 		
 	u:SetBuildTimeMultiplier(0.5)
@@ -444,6 +511,7 @@ function checkTeleportationZones()
 						-- redirect to teleport zone
 						--unit:GetNavigator():SetGoal(zone.teleporterSource)
 						--IssueStop({unit})
+						dump(unit:GetNavigator():GetStatus())
 						unit:GetNavigator():SetGoal(zone.teleporterSource)
 						--IssueMove({unit}, zone.teleporterSource)
 					end
@@ -471,9 +539,29 @@ function checkTeleportationZones()
 
 					LOG("Warping unit from Zone "..zone.name.." to "..Xsave('aaa',teleportPos))
 --					if unit:CanPathTo(teleportPos) then 
+
+					--fix ferry bug with transports?
+					local cs = 0;
+
+			        if EntityCategoryContains(categories.TRANSPORTATION, unit) then
+			                local cargo = unit:GetCargo()
+			                if table.getn(cargo) > 0 then
+			                    for k, v in cargo do
+									LOG(v)
+			                    end
+			                end
+							
+						LOG("cargo size pre teleport: "..table.getn(cargo))
 						Warp(unit, teleportPos, unit:GetOrientation())
 						WaitSeconds(0.2)
-						
+		                local cargo = unit:GetCargo()
+						LOG("cargo size post teleport: "..table.getn(cargo))
+					else
+						Warp(unit, teleportPos, unit:GetOrientation())
+						WaitSeconds(0.2)
+					
+			        end
+
 						-- Move to Original Waypoint
 						unit:GetNavigator():SetGoal(unit.originalWaypoint)					
 						IssueMove({unit}, unit.originalWaypoint)
@@ -526,6 +614,10 @@ function checkCountryOwnership()
 			for index,unit in units do
 				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 then
 				
+					local weapon = unit:GetWeapon(1)
+					local h = 10
+					unit:SetMaxHealth(h)
+					unit:SetHealth(nil, h)
 --				LOG(unit:GetBlueprint())
 					if(armycounters[unit:GetArmy()]) then
 						armycounters[unit:GetArmy()] = armycounters[unit:GetArmy()] +1
@@ -535,6 +627,13 @@ function checkCountryOwnership()
 					
 					
 					if(getArmyName(unit) == cdata.owner) then
+						-- own unit
+						weapon:ChangeRateOfFire(1)
+--						weapon:SetTurretYawSpeed(300)
+--						weapon:SetTurretPitchSpeed(300)
+						weapon:ChangeMaxRadius(meter(baseSizeMeters)*baseSizeInner)
+						weapon:SetFiringRandomness(1.0)
+					
 						if cdata.president != unit then
 							--unit:SetCustomName("") --Citizen of "..cdata.name)
 						end
@@ -543,6 +642,8 @@ function checkCountryOwnership()
 							setAsPresident(cdata, unit)
 						end
 					else
+						-- enemy unit
+						weapon:SetFiringRandomness(1.4)
 						--unit:SetCustomName("Liberator of "..cdata.name)
 					end
 				end
