@@ -1,7 +1,7 @@
 version = 3 -- Lua Version. Dont touch this
 ScenarioInfo = {
-    name = "Supreme Risk (SupCom)",
-    description = "<LOC supremeRisk_Description>Supreme Risk is a SupCom minigame enabling risks rules for fights over Earths continents. !! This version is for stock SupCom and does not work with FAF",
+    name = "Supreme Risk (FAF)",
+    description = "<LOC supremeRisk_Description>Supreme Risk is a SupCom minigame enabling risks rules for fights over Earths continents. !! This version is compatible with FAF",
     preview = '',
     map_version = 4,
     type = 'skirmish',
