@@ -267,6 +267,16 @@ function spawnFactory(cdata)
 		, categories.MOBILE)
 
 
+	u.OnStartBuildOriginal = u.OnStartBuild
+	u.OnStartBuild = function(self, unitBeingBuilt, order)
+		dump(unitBeingBuilt)
+		LOG("Start building ")
+		IssueStop(self)
+		--self:OnStartBuildOriginal(unitBeingBuilt, order)
+	end
+		
+	u:SetBuildTimeMultiplier(0.5)
+--	u.UpdateConsumptionValues = function() end
 	
 end
 
@@ -277,9 +287,9 @@ end
 function createWall(army,x,y)
 		local u = CreateUnitHPR('ueb5101', army, x,y,y, 0,0,0)
 		u:SetCanBeKilled(false)
---        u:CreateWreckageProp(1)
---        u:Destroy()
-		u:EnableUnitIntel('Cloak')
+        u:CreateWreckageProp(1)
+        u:Destroy()
+--		u:EnableUnitIntel('Cloak')
 --		u:DisableUnitIntel('Vision')
 	
 
@@ -340,6 +350,8 @@ function setAsPresident(country, unit)
 --		local e = unit:GetElevation()
 --		dump(e)
 		
+		unit:GetBlueprint().Economy.BuildCostMass = 10
+
 --GetNavigator
 --GetRallyPoint
 --CanPathTo		
