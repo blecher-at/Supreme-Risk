@@ -24,6 +24,14 @@ function meter(m)
 	return m*0.0512
 end
 
+function Pos(x,y)
+	local p = {}
+	p[1] = x
+	p[3] = y
+	p[2] = 0
+	return p
+end
+
   
 function circleWalls(cdata)
 	local x = cdata.pos.x
@@ -59,10 +67,27 @@ local countries = {
 		owner = "ARMY_1",
 		walls = nil;
 	},
+	{	name='Alaska',
+		pos = {
+			x = 100, 
+			y = 285
+		},
+		owner = "ARMY_1",
+		walls = circleWalls;
+	},	
 	{	name='West Africa',
 		pos = {
 			x = meter(8700), 
 			y = meter(10300)
+		},
+		owner = "ARMY_1",
+		walls = circleWalls
+	},
+	
+		{	name='Kamchatka',
+		pos = {
+			x = 920,			
+			y = 305
 		},
 		owner = "ARMY_1",
 		walls = circleWalls
@@ -78,6 +103,33 @@ local countries = {
   }
   }
 
+local teleportationZones = {
+	{
+		name		='Alaska',
+		pos			= Rect(0,0,60,500),
+		target 		= Pos(1000,310), 
+		targetRally = Pos(960,315),
+		orientationRequirement = function(orientation) 
+			if orientation[2] <0 then 
+				return true
+			else
+				return false
+			end
+		end
+    },
+	{
+		name		='kamc',
+		pos			= Rect(970,0,1024,500),
+		target 		= Pos(30,300), 
+		targetRally = Pos(70,285),
+		orientationRequirement = function(orientation) 
+			if orientation[2] >0 then return true
+			else return false
+			end
+		end
+    }
+}
+  
 local player = nil;
 
 function OnPopulate()
@@ -212,6 +264,7 @@ function presidentIsAlive(country)
 	end
 end
 
+
 function setAsPresident(country, unit)
 
 	local x = country.pos.x-2
@@ -237,16 +290,77 @@ function setAsPresident(country, unit)
 --	unit.OnMotionVertEventChange = function() end
 --	unit.OnMotionTurnEventChange = function() end
 --	unit.UpdateMovementEffectsOnMotionEventChange = function() end
-	    unit:PlayUnitSound('TeleportStart')
 
-		for a, ccc in unit:GetOrientation() do LOG(a.." "..ccc) end
-		for a, ccc in unit:GetPosition() do LOG(a.." "..ccc) end
-		LOG(unit:GetOrientation())
+--		for a, ccc in unit:GetOrientation() do LOG(a.." "..ccc) end
+--		for a, ccc in unit:GetPosition() do LOG(a.." "..ccc) end
+--		LOG(unit:GetOrientation())
 		
 		unit.TeleportDrain = nil
 		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
+		unit.InitiateTeleportThread = myInitiateTeleportThread
 		unit:OnTeleportUnit(unit, {x,0,y},{0,0,0,1})
 --		Warp(unit,{country.pos.x,0,country.pos.y+6,0},{0,0,0,1})
+		end
+	end
+end
+
+
+function myInitiateTeleportThread(self, teleporter, location, orientation)
+        self.UnitBeingTeleported = self
+        self:SetImmobile(true)
+
+        self:PlayUnitSound('TeleportStart')
+        self:PlayUnitAmbientSound('TeleportLoop')
+
+        # create teleport charge effect
+        self:PlayTeleportChargeEffects()
+        self:PlayTeleportOutEffects()
+        self:CleanupTeleportChargeEffects()
+        WaitSeconds( 0.1 )
+        #Teleport Sound
+        self:SetWorkProgress(0.0)
+        Warp(self, location, orientation)
+        self:PlayTeleportInEffects()
+        WaitSeconds( 0.1 ) # Perform cooldown Teleportation FX here
+    #Landing Sound
+    #LOG('DROP')
+    self:StopUnitAmbientSound('TeleportLoop')
+    self:PlayUnitSound('TeleportEnd')
+    self:SetImmobile(false)
+    self.UnitBeingTeleported = nil
+    self.TeleportThread = nil
+
+	LOG("Teleport done")
+	if self.targetRally then
+		IssueMove( {self}, self.targetRally )
+	end
+end
+
+function checkTeleportationZones()
+	for i, zone in teleportationZones do
+		local units = GetUnitsInRect(zone.pos)
+		if units then
+			for index,unit in units do
+				-- teleport these units
+				if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 
+					and zone.orientationRequirement(unit:GetOrientation()) 
+				then
+			
+					local newPosition = unit:GetPosition();
+
+					newPosition[1] = zone.target[1];
+					newPosition[3] = zone.target[3];
+					
+					unit.targetRally = zone.targetRally
+					-- teleport is for free ... shadow economyEvent function
+					unit.CreateEconomyEvent = function () end
+					
+					-- shadow teleport function to issue move afterwards
+					unit.InitiateTeleportThread = myInitiateTeleportThread
+					unit:OnTeleportUnit(unit, newPosition,{0,0,0,1})
+					--unit.CreateEconomyEvent = ee -- dont reset, we are async
+				end
+			end
 		end
 	end
 end
@@ -356,6 +470,8 @@ end
 function jobsThread()
 	while true do
 		reassignFactories()
+		checkTeleportationZones()
 		WaitSeconds(1)
 	end
 end
+
