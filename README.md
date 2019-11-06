@@ -14,6 +14,12 @@ I first wrote this Map back in 2007, and recently picked it up again to make it 
 
 TBD
 
+## Files
+
+- Supreme_Risk.v0010 The version compatible with FAF
+- Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
+
+
 ## Known Issues (FAF Version)
 
 - Objectives are only shown briefly at the start, need a persistent display
