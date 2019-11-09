@@ -15,7 +15,7 @@ END
 -- (C) 2007 Stephan Blecher (stephan@blecher.at)
 --
 -- Use at your own risk and have lots of fun!
--- Version 8
+-- Version 10
 --
 -------------------------------------------------------------
 
@@ -38,7 +38,7 @@ local executing = false
 local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
-local maxRoundIdleTime = 20; -- number of seconds from last round action to begin next round
+local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
 local idleWarnTime = 30; -- warn n seconds before end of round
 local roundnum = 0;
 local roundTotalTime = 0;
@@ -284,9 +284,10 @@ function OnPopulate()
 	
 	
 	-- prevent ACU warpin animation
---	ScenarioInfo.Options['PrebuiltUnits'] = nil
+	ScenarioInfo.Options.PrebuiltUnits = nil
+	ScenarioInfo.Options.Victory = 'sandbox'
 
-	tblGroup = ScenarioUtils.InitializeArmies()
+	InitializeSupremeRiskArmies()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
   
@@ -295,6 +296,85 @@ function OnPopulate()
 
 	LOG("ONPOPULATE END")
 end
+
+function InitializeSupremeRiskArmies()
+    local tblGroups = {}
+    local tblArmy = ListArmies()
+
+    local civOpt = ScenarioInfo.Options.CivilianAlliance
+
+    --local bCreateInitial = ShouldCreateInitialArmyUnits()
+
+    for iArmy, strArmy in pairs(tblArmy) do
+        local tblData = Scenario.Armies[strArmy]
+
+        tblGroups[ strArmy ] = {}
+
+        if tblData then
+
+            ----[ If an actual starting position is defined, overwrite the        ]--
+            ----[ randomly generated one.                                         ]--
+
+            --LOG('*DEBUG: InitializeArmies, army = ', strArmy)
+
+            SetArmyEconomy(strArmy, tblData.Economy.mass, tblData.Economy.energy)
+
+            --GetArmyBrain(strArmy):InitializePlatoonBuildManager()
+            --LoadArmyPBMBuilders(strArmy)
+            if GetArmyBrain(strArmy).SkirmishSystems then
+                GetArmyBrain(strArmy):InitializeSkirmishSystems()
+            end
+
+            local armyIsCiv = ScenarioInfo.ArmySetup[strArmy].Civilian
+
+            if armyIsCiv and civOpt ~= 'neutral' and strArmy ~= 'NEUTRAL_CIVILIAN' then -- give enemy civilians darker color
+                SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
+            end
+
+            ----[ irumsey                                                         ]--
+            ----[ Temporary defaults.  Make sure some fighting will break out.    ]--
+            for iEnemy, strEnemy in tblArmy do
+                local enemyIsCiv = ScenarioInfo.ArmySetup[strEnemy].Civilian
+                local a, e = iArmy, iEnemy
+                local state = 'Enemy'
+
+                if a ~= e then
+                    if armyIsCiv or enemyIsCiv then
+                        if civOpt == 'neutral' or strArmy == 'NEUTRAL_CIVILIAN' or strEnemy == 'NEUTRAL_CIVILIAN' then
+                            state = 'Neutral'
+                        end
+
+                        if ScenarioInfo.Options['RevealCivilians'] == 'Yes' and ScenarioInfo.ArmySetup[strEnemy].Human then
+                            ForkThread(function()
+                                WaitSeconds(.1)
+                                local real_state = IsAlly(a, e) and 'Ally' or IsEnemy(a, e) and 'Enemy' or 'Neutral'
+
+                                GetArmyBrain(e):SetupArmyIntelTrigger({
+                                    Category=categories.ALLUNITS,
+                                    Type='LOSNow',
+                                    Value=true,
+                                    OnceOnly=true,
+                                    TargetAIBrain=GetArmyBrain(a),
+                                    CallbackFunction=function()
+                                        SetAlliance(a, e, real_state)
+                                    end,
+                                })
+                                SetAlliance(a, e, 'Ally')
+                            end)
+                        end
+                    end
+
+                    if state then
+                        SetAlliance(a, e, state)
+                    end
+                end
+            end
+        end
+    end
+
+    return tblGroups
+end
+
 
 function zoomOut()
 	-- Set Camera to show full Map
@@ -311,22 +391,21 @@ function numPlayers()
 end
 
 -- acu functions
-function onSRProduceUnit(acu)
-	if acu.SRUnitsToBuild > 0 then
-		acu.SRUnitsToBuild = acu.SRUnitsToBuild - 1
+function onSRProduceUnit(acu, unitBeingBuilt)
+	if acu.SRUnitsToBuild >= unitBeingBuilt.riskBuildCount then
+		acu.SRUnitsToBuild = acu.SRUnitsToBuild - unitBeingBuilt.riskBuildCount;
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
---		LOG("BUILD::"..acu.SRUnitsToBuild)
+		LOG("BUILD ::"..acu.SRUnitsToBuild)
 
 		-- unpause factories now tha
 		for ci,continent in continents do
 			for i,cdata in continent.countries do		
-			if cdata.factory and cdata.owner == player.armyName then
-				--IssueBuildFactory({cdata.factory}, "uel0106",9999)
-				cdata.factory:SetProductionActive(true);
-				--cdata.factory.onAI = true
+				if cdata.factory and cdata.owner == player.armyName then
+					cdata.factory:SetProductionActive(true);
+					--cdata.factory.onAI = true
+				end
 			end
 		end
-	end
 	
 		return true
 	else
@@ -337,7 +416,9 @@ end
 function onSRAddUnitResources(acu, un)
 --	acu.SRUnitsToBuild = acu.SRUnitsToBuild + un
 	acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
+	
 	if not acu:IsDead() then
+		setPlayerRestrictions(acu.index, acu.SRUnitsToBuild)
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
 	end
 end
@@ -364,26 +445,35 @@ function OnStart(self)
 end
 
 function init()
---	dump(ScenarioInfo)
---var["Options"]["Victory"] = "demoralization"
---var["Options"]["Victory"] = "eradication"
 	for index,army in ListArmies() do
 		LOG(index.." "..army.." is playing")
 		
-		#Building Restrictions
-		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
-		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
-		ScenarioFramework.RemoveRestriction(index, categories.ual0106)
-		ScenarioFramework.RemoveRestriction(index, categories.url0106)
-		ScenarioFramework.RemoveRestriction(index, categories.ueb0301)		
+		setPlayerRestrictions(index, 1)
+
 	end
 	
+end
+
+function setPlayerRestrictions( index, SRUnitsToBuild) 
+		
+		--Building Restrictions
+		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
+		ScenarioFramework.RemoveRestriction(index, categories.uel0106) -- mech marine
+		
+		-- striker 
+		if SRUnitsToBuild >= 5 then ScenarioFramework.RemoveRestriction(index, categories.uel0201) end
+		
+		-- lobo
+		if SRUnitsToBuild >= 10 then ScenarioFramework.RemoveRestriction(index, categories.uel0103) end
+		--ScenarioFramework.RemoveRestriction(index, categories.ual0106)
+		--ScenarioFramework.RemoveRestriction(index, categories.url0106)
+		ScenarioFramework.RemoveRestriction(index, categories.ueb0301) -- factory
 end
 
 function getArmyByName(name)
 	for index,army in ListArmies() do
 		if army == name then
-			return index;
+			return index
 		end
 	end
 end
@@ -448,60 +538,96 @@ function getPlayerByName(name)
 	return nil
 end
 
+
+function getPlayerByIndex(index)
+    for i, player in players do
+		if player.index == index then 
+			return player
+		end
+	end
+	return nil
+end
+
 function initPlayers()
 	-- ACU and Resources
-	local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
-	for i,acu in playerACUs do
-		LOG("found ACU "..acu:GetArmy())
+	local tblArmy = ListArmies()
+    local factions = import('/lua/factions.lua')
+    local bCreateInitial = ShouldCreateInitialArmyUnits()
+    local armies = {}
 	
-		local player = {};
-		player.index = acu:GetArmy();
-		player.acu = acu;
-		
-		player.acu:SetProductionPerSecondMass(0);
-		player.acu:SetProductionPerSecondEnergy(2000);
-		player.acu.SRUnitsToBuild = 0;
-		player.acu.player = player;
-		
-		player.nextRoundBonusProfit = 0; --- card bonuses
-		player.bonusCardSpawned = false;
-		
-		player.armyName = getArmyName(player.acu);
-		players[acu:GetArmy()] = player;
-		
-		-- resource stuff
-		player.acu.SRProduceUnit = onSRProduceUnit
-		player.acu.SRAddUnitResources = onSRAddUnitResources
+    for i, name in tblArmy do
+        armies[name] = i
+    end
 
-		player.resourceMultiplyer = player.acu:GetBlueprint().Economy.ProductionPerSecondMass
-		
-		-- enhancement stuff (disable all of them!)
-        AddUnitEnhancement(player.acu,'dummy', 'Back')	
-        AddUnitEnhancement(player.acu,'dummy', 'RCH')	
-        AddUnitEnhancement(player.acu,'dummy', 'LCH')	
-		player.acu:RequestRefreshUI()
-  		
-		-- mobility
-		player.acu:SetImmobile(true)
+    ScenarioInfo.CampaignMode = true
+    --Sync.CampaignMode = true
+    import('/lua/sim/simuistate.lua').IsCampaign(true)
 
-		--brain
-		player.brain = GetArmyBrain(player.armyName)
-		player.brain.player = player -- callback ( useful for coding an AI later)
-		player.brain.CalculateScore = function(self)
-			return player.empireSize
+	--local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
+    --for i,acu in playerACUs do
+    for i, name in tblArmy do
+		if i <= 6 then
+			local tblData = Scenario.Armies[name]
+			armies[name] = i
+		
+			local army = i;
+			local x = army * ( 1024 / 7);
+			local y = 910;
+			local player = {}
+			player.acu = CreateUnitHPR('xrb0104', army, x,y,y, 0,0,0)
+
+
+			--player.index = acu:GetArmy();
+			player.index = i;
+			--player.acu = acu;
+			
+			player.acu:SetProductionPerSecondMass(0);
+			player.acu:SetProductionPerSecondEnergy(2000);
+			player.acu.SRUnitsToBuild = 0;
+			player.acu.player = player;
+			
+			player.nextRoundBonusProfit = 0; --- card bonuses
+			player.bonusCardSpawned = false;
+			
+			player.armyName = getArmyName(player.acu)
+			players[army] = player;
+			LOG("found ACU "..i.." - "..player.armyName)
+
+			-- resource stuff
+			player.acu.SRProduceUnit = onSRProduceUnit
+			player.acu.SRAddUnitResources = onSRAddUnitResources
+			player.acu.index = player.index;
+
+			player.resourceMultiplyer = 1 --player.acu:GetBlueprint().Economy.ProductionPerSecondMass
+			
+			-- enhancement stuff (disable all of them!)
+			AddUnitEnhancement(player.acu,'dummy', 'Back')	
+			AddUnitEnhancement(player.acu,'dummy', 'RCH')	
+			AddUnitEnhancement(player.acu,'dummy', 'LCH')	
+			player.acu:RequestRefreshUI()
+			
+			-- mobility
+			player.acu:SetImmobile(true)
+
+			--brain
+			player.brain = GetArmyBrain(player.armyName)
+			player.brain.player = player -- callback ( useful for coding an AI later)
+			player.brain.CalculateScore = function(self)
+				return player.empireSize
+			end
+			
+			if not player.brain.OnOrigDefeat then
+				player.brain.OnOrigDefeat = player.brain.OnDefeat
+			end
+			player.brain.OnDefeat = onPlayerDefeat
+			
+			-- helper Functions for an AI or other scripts	
+			player.GetRoundIdleTime = function()	return roundIdleSeconds	end
+			player.GetContinents = 	  function()	return continents		end
+			
+			player.faction = GetFaction(player);
+			player.empireSize = 0;
 		end
-		
-		if not player.brain.OnOrigDefeat then
-			player.brain.OnOrigDefeat = player.brain.OnDefeat
-		end
-		player.brain.OnDefeat = onPlayerDefeat
-		
-		-- helper Functions for an AI or other scripts	
-		player.GetRoundIdleTime = function()	return roundIdleSeconds	end
-		player.GetContinents = 	  function()	return continents		end
-		
-		player.faction = GetFaction(player);
-		player.empireSize = 0;
 	end
 end
 
@@ -750,6 +876,7 @@ function spawnFactory(cdata)
 	local name = cdata.name
 	local army = cdata.owner
 	local name = 'ueb0301'
+	local country = cdata
 	
 --	if GetArmyBrain(cdata.owner):GetFactionIndex() == 2 then
 --		name = 'uab0101';
@@ -781,37 +908,37 @@ function spawnFactory(cdata)
 	--	Warp(unit, {x+0,0,y+5},{0,0,0,1})
 	--end
 
-	u:AddOnUnitBuiltCallback(function (factory, unit) 
-		LOG("Unit has been Built in "..cdata.name..": "..unit:GetEntityId())
+	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
+		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
 		
 		onRoundAction()
-		initUnit(unit)
+
+		--dump(unitbp)
+		local count = unitBeingBuilt.riskBuildCount
+		unitBeingBuilt:Destroy()
 		
+		for i=1, count do 
+			local spot = findFreeUnitSpot(country)
+			
+			--local x = country.pos.x-5 + country.friendlyUnits * 1
+			--local y = country.pos.y+5 -- + (country.friendlyUnits / 10) * 1
+			unit = CreateUnitHPR('uel0106', country.owner, spot.x,0,spot.y, 0,0,0)
+			--unit.isInitialPresident = true;
+			initUnit(unit)	
+			country.friendlyUnits = country.friendlyUnits + 1
+		end
+
+		local player = getPlayerByName(country.owner)
+		
+		LOG("Unit has been Built in "..cdata.name..". Left: "..player.acu.SRUnitsToBuild)
+		setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
+	
+		--self.FactoryBuildFailed = true
+		--StructureUnit.OnStopBuild(self, unitBeingBuilt, order )
+		--end
 		--local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+10,cdata.pos.y+10, 0,0,0)
 		--initUnit(unit)
 
---		unit.TeleportDrain = nil
---		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
---		unit.InitiateTeleportThread = myInitiateTeleportThread
-		local ux = unit:GetNavigator():GetGoalPos()[1];
-		local uy = unit:GetNavigator():GetGoalPos()[3];
-		
-		-- this causes factory to self-destruct?!
-		--unit:OnTeleportUnit(unit, {x,0,y+5},{0,0,0,1})
-		--IssueStop({unit}) 
-        --WaitSeconds( 0.1 )
-		--unit:SetImmobile(true)
-		--Warp(unit, {x+0,0,y+5},{0,0,0,1})
-		--IssueMove({unit}, Pos(ux,uy))
-		--return false
-        --WaitSeconds( 0.1 )
-		--IssueStop({unit}) 
-		--unit:GetNavigator():SetGoal(Pos(ux,uy))
-		--unit:GetNavigator():SetSpeedThroughGoal(true)
-        --unit:GetNavigator():SetGoal(Pos(x,y+15))
-        --Warp(unit, {x+4,0,y+5},{0,0,0,1})
-        --WaitSeconds( 0.1 )
-		--unit:SetImmobile(false)
 
 		
 		end
@@ -822,20 +949,35 @@ function spawnFactory(cdata)
 --		dump(unitBeingBuilt)
 		
 		local player = players[self:GetArmy()]
+		
+		local count = 1;
+		local unitbp = unitBeingBuilt:GetBlueprint()
+		local unitid = unitbp.BlueprintId;
+		
+		unitBeingBuilt.riskBuildCount = 1;
+		if unitid == 'uel0201' then unitBeingBuilt.riskBuildCount = 5 end
+		if unitid == 'uel0103' then unitBeingBuilt.riskBuildCount = 10 end
 
-		if player.acu:SRProduceUnit() then 
+		if player.acu:SRProduceUnit(unitBeingBuilt) then 
 			LOG(self:GetArmy().." start building ")
 			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
+			
+			
+			--unitBeingBuilt:Kill()
+			--cdata.factory:SetProductionActive(false);
+
 		else
 			LOG("Build limit reached in Factory")
-			unitBeingBuilt:Kill()
-			IssueStop({cdata.factory});
+			unitBeingBuilt:Destroy() 
+			--IssueStop({cdata.factory});
 			--cdata.factory:SetPaused(true);
 			--cdata.factory:SetProductionActive(false);
 
 --			WaitTicks(50)
 		end
+		
+		
 	end
 		
 	u:SetBuildTimeMultiplier(0.01)
@@ -844,6 +986,46 @@ function spawnFactory(cdata)
 --	u.UpdateConsumptionValues = function() end
 	
 end
+
+function findFreeUnitSpot(country)
+	local foundPos = {}
+	local initialx = country.pos.x - 4.5;
+	foundPos.x = initialx;
+	foundPos.y = country.pos.y + 5;
+	local maxWidth = 10
+	local step = 1
+	
+	while true do
+		local units = GetUnitsInRect(Rect(foundPos.x, foundPos.y, foundPos.x + 1, foundPos.y + 1))
+		
+		if not units then
+			return foundPos
+		else
+			-- GetUnitsInRect is not exact, need to compare position
+			local unitsfound = 0
+			for i, unit in units do
+				local unitpos = unit:GetPosition()
+--				if (abs(unitpos[1] - foundPos.x) <= 1 and abs(unitpos[3] - foundPos.y) <= 1) then 
+				if unitpos[1] == foundPos.x and unitpos[3] == foundPos.y then 
+					unitsfound = unitsfound + 1
+				end
+			end
+			
+			if unitsfound > 0 then
+				foundPos.x = foundPos.x + step
+				if foundPos.x - initialx >= maxWidth then
+					foundPos.x = initialx
+					foundPos.y = foundPos.y + step
+				end
+			else 
+				return foundPos
+			end
+			
+			
+		end
+	end
+end
+
 
 function initUnit(unit)
 
@@ -903,13 +1085,17 @@ end
 
 function setAsPresident(country, unit)
 
-	local x = country.pos.x-3
-	local y = country.pos.y+5
-	if not unit then
+	local x = country.pos.x-4
+	local y = country.pos.y-2
+	if unit then
+		unit:Destroy()
+	end
+	
+	--if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
 		initUnit(unit)		
-	end
+	--end
 
 	-- only alive units can be elected president
 	if not unit:IsBeingBuilt() and not unit:IsDead() then
@@ -1166,7 +1352,7 @@ function checkCountryOwnership()
 						currentOwnerIndex = getPlayerByName(cdata.owner).index
 						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
 							-- own or allied unit
-							unit:SetSpeedMult(30) -- reset for successful liberators
+							unit:SetSpeedMult(5) -- reset for successful liberators
 							unit:SetAccMult(5)
 							unit:SetTurnMult(5)
 							
@@ -1181,18 +1367,18 @@ function checkCountryOwnership()
 								unit.homebase = cdata
 							end
 							
-							if cdata.president != unit and unit.homebase == cdata then
+							if cdata.president != unit then
+								if unit.homebase == cdata then
 								--unit:SetCustomName("") --Citizen of "..cdata.name)
 --								unit:SetImmobile(false)
-								unit:SetCustomName("Citizen of "..cdata.name)
-								unit.isResting = false;
-								unit:SetImmobile(false)
-							else
---								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-								
-								if cdata.president != unit then
+									unit:SetCustomName("Citizen of "..cdata.name)
+									unit.isResting = false;
+									unit:SetImmobile(false)
+								else
+	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
+									
 --									unit:SetSpeedMult(0) -- dont move a lot anymore
-									unit:SetImmobile(true)
+										--unit:SetImmobile(true)
 									if not unit.isResting then
 										unit.TeleportDrain = nil
 --									unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
@@ -1217,7 +1403,6 @@ function checkCountryOwnership()
 										--unit.isResting = true;
 									end
 								end
-								
 							end
 							
 							if not presidentIsAlive(cdata) then
@@ -1265,24 +1450,25 @@ function checkCountryOwnership()
 					cdata.factory=nil
 				end
 				cdata.isAttacked = true
+				cdata.attacker = enemyArmy
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
 				cdata.isAttacked = false
 			end
 
 			if friendlyUnits == 0 and enemyUnits > 0 then
-				LOG(cdata.name.." liberated by "..enemyArmy)
+				LOG(cdata.name.." liberated by "..cdata.attacker)
 				
-				spawnRandomCard(players[enemyArmyId]) -- spawn card for player
-				cdata.owner = enemyArmy				
+				spawnRandomCard(getPlayerByName(cdata.attacker)) -- spawn card for player
+				cdata.owner = cdata.attacker				
 				cdata.factoryOwnershipChanged = true;
 				cdata.conqueredThisRound = true;
 			end
-			if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
-				LOG(cdata.name.." has no owner")
-				cdata.owner = "ARMY_9"
-				cdata.factoryOwnershipChanged = true;
-				cdata.conqueredThisRound = true;			
+			
+			if friendlyUnits == 0 and enemyUnits == 0 then
+				-- respawn president unit if no enemies left after battle
+				LOG("President of "..cdata.name.." resurrected")
+				setAsPresident(cdata, nil)
 			end
 			
 			-- update
@@ -1321,11 +1507,11 @@ function respawnFactory(c)
 		local f = c.factory
 		c.factory = nil;
 		f:SetCanBeKilled(true)
-		if not f:IsDead() then f:Kill() end
-		WaitSeconds(3)
+		if not f:IsDead() then f:Destroy() end
+		WaitSeconds(1)
 	end
 	
-	WaitSeconds(2)
+	--WaitSeconds(2)
 	--LOG("SPAWNING FACTORY in "..c.name.." - "..string.format("bool: %t", c.isAttacked))
 	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
 		spawnFactory(c)
@@ -1353,7 +1539,7 @@ function checkEndOfRound()
 
 	roundIdleSeconds = roundIdleSeconds + 1
 	roundTotalTime = roundTotalTime + 1
-	Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
+	--Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
 	
 
 	if roundIdleSeconds >= maxRoundIdleTime then
@@ -1407,8 +1593,9 @@ end
 
 function displayRoundBegin()
 	local ileft = maxRoundIdleTime - roundIdleSeconds
-	PrintText("Round "..roundnum.." - Produce Units and Attack. Next Round will begin after "..ileft.." seconds idle",
-		20,'Red',30,'centertop') 
+	local missionText = players[GetFocusArmy()].mission:getText()
+	PrintText(missionText.." - Round "..roundnum.." - Produce Units and Attack. ",
+		ileft,'Red',30,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
 	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
@@ -1624,9 +1811,12 @@ function updateSecondaryMissions()
 			end
 			
 			-- warn player if he has still not built his units
-			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
+			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 3 or roundIdleSeconds == 15) then
 				player.buildObjectiveWarn = true
-				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', 
+				vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', 
+				cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				
 				ScenarioFramework.Dialogue(m1)		
 			end
 			
@@ -1635,6 +1825,10 @@ function updateSecondaryMissions()
 --				LOG("We could cash in bonus cards!")
 				-- Add secondary objective - use these resources!!
 				if not player.cardObjective  then
+					local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Reclaim the wreckages at the map bottom for Bonus Units. ', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+					ScenarioFramework.Dialogue(m1)		
+
+				
 					player.cardObjective = ScenarioFramework.Objectives.Basic(
 			        '',
 			        'incomplete',
