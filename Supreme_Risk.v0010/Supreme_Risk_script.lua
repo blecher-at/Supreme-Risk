@@ -571,13 +571,9 @@ function initPlayers()
 			local tblData = Scenario.Armies[name]
 			armies[name] = i
 		
-			--local name = cdata.name
-			--local army = cdata.owner
-			--local name = 'ueb0301'
-		
 			local army = i;
-			local x = army * 100;
-			local y = 900;
+			local x = army * ( 1024 / 7);
+			local y = 910;
 			local player = {}
 			player.acu = CreateUnitHPR('xrb0104', army, x,y,y, 0,0,0)
 
@@ -942,28 +938,6 @@ function spawnFactory(cdata)
 		--local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+10,cdata.pos.y+10, 0,0,0)
 		--initUnit(unit)
 
---		unit.TeleportDrain = nil
---		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
---		unit.InitiateTeleportThread = myInitiateTeleportThread
-		--local ux = unit:GetNavigator():GetGoalPos()[1];
-		--local uy = unit:GetNavigator():GetGoalPos()[3];
-		
-		-- this causes factory to self-destruct?!
-		--unit:OnTeleportUnit(unit, {x,0,y+5},{0,0,0,1})
-		--IssueStop({unit}) 
-        --WaitSeconds( 0.1 )
-		--unit:SetImmobile(true)
-		--Warp(unit, {x+0,0,y+5},{0,0,0,1})
-		--IssueMove({unit}, Pos(ux,uy))
-		--return false
-        --WaitSeconds( 0.1 )
-		--IssueStop({unit}) 
-		--unit:GetNavigator():SetGoal(Pos(ux,uy))
-		--unit:GetNavigator():SetSpeedThroughGoal(true)
-        --unit:GetNavigator():SetGoal(Pos(x,y+15))
-        --Warp(unit, {x+4,0,y+5},{0,0,0,1})
-        --WaitSeconds( 0.1 )
-		--unit:SetImmobile(false)
 
 		
 		end
