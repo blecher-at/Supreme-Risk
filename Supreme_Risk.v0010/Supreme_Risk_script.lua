@@ -15,7 +15,7 @@ END
 -- (C) 2007 Stephan Blecher (stephan@blecher.at)
 --
 -- Use at your own risk and have lots of fun!
--- Version 8
+-- Version 10
 --
 -------------------------------------------------------------
 
@@ -284,9 +284,10 @@ function OnPopulate()
 	
 	
 	-- prevent ACU warpin animation
---	ScenarioInfo.Options['PrebuiltUnits'] = nil
+	ScenarioInfo.Options.PrebuiltUnits = nil
+	ScenarioInfo.Options.Victory = 'sandbox'
 
-	tblGroup = ScenarioUtils.InitializeArmies()
+	InitializeSupremeRiskArmies()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
   
@@ -295,6 +296,85 @@ function OnPopulate()
 
 	LOG("ONPOPULATE END")
 end
+
+function InitializeSupremeRiskArmies()
+    local tblGroups = {}
+    local tblArmy = ListArmies()
+
+    local civOpt = ScenarioInfo.Options.CivilianAlliance
+
+    --local bCreateInitial = ShouldCreateInitialArmyUnits()
+
+    for iArmy, strArmy in pairs(tblArmy) do
+        local tblData = Scenario.Armies[strArmy]
+
+        tblGroups[ strArmy ] = {}
+
+        if tblData then
+
+            ----[ If an actual starting position is defined, overwrite the        ]--
+            ----[ randomly generated one.                                         ]--
+
+            --LOG('*DEBUG: InitializeArmies, army = ', strArmy)
+
+            SetArmyEconomy(strArmy, tblData.Economy.mass, tblData.Economy.energy)
+
+            --GetArmyBrain(strArmy):InitializePlatoonBuildManager()
+            --LoadArmyPBMBuilders(strArmy)
+            if GetArmyBrain(strArmy).SkirmishSystems then
+                GetArmyBrain(strArmy):InitializeSkirmishSystems()
+            end
+
+            local armyIsCiv = ScenarioInfo.ArmySetup[strArmy].Civilian
+
+            if armyIsCiv and civOpt ~= 'neutral' and strArmy ~= 'NEUTRAL_CIVILIAN' then -- give enemy civilians darker color
+                SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
+            end
+
+            ----[ irumsey                                                         ]--
+            ----[ Temporary defaults.  Make sure some fighting will break out.    ]--
+            for iEnemy, strEnemy in tblArmy do
+                local enemyIsCiv = ScenarioInfo.ArmySetup[strEnemy].Civilian
+                local a, e = iArmy, iEnemy
+                local state = 'Enemy'
+
+                if a ~= e then
+                    if armyIsCiv or enemyIsCiv then
+                        if civOpt == 'neutral' or strArmy == 'NEUTRAL_CIVILIAN' or strEnemy == 'NEUTRAL_CIVILIAN' then
+                            state = 'Neutral'
+                        end
+
+                        if ScenarioInfo.Options['RevealCivilians'] == 'Yes' and ScenarioInfo.ArmySetup[strEnemy].Human then
+                            ForkThread(function()
+                                WaitSeconds(.1)
+                                local real_state = IsAlly(a, e) and 'Ally' or IsEnemy(a, e) and 'Enemy' or 'Neutral'
+
+                                GetArmyBrain(e):SetupArmyIntelTrigger({
+                                    Category=categories.ALLUNITS,
+                                    Type='LOSNow',
+                                    Value=true,
+                                    OnceOnly=true,
+                                    TargetAIBrain=GetArmyBrain(a),
+                                    CallbackFunction=function()
+                                        SetAlliance(a, e, real_state)
+                                    end,
+                                })
+                                SetAlliance(a, e, 'Ally')
+                            end)
+                        end
+                    end
+
+                    if state then
+                        SetAlliance(a, e, state)
+                    end
+                end
+            end
+        end
+    end
+
+    return tblGroups
+end
+
 
 function zoomOut()
 	-- Set Camera to show full Map
@@ -450,13 +530,39 @@ end
 
 function initPlayers()
 	-- ACU and Resources
-	local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
-	for i,acu in playerACUs do
-		LOG("found ACU "..acu:GetArmy())
+	local tblArmy = ListArmies()
+    local factions = import('/lua/factions.lua')
+    local bCreateInitial = ShouldCreateInitialArmyUnits()
+    local armies = {}
 	
-		local player = {};
-		player.index = acu:GetArmy();
-		player.acu = acu;
+    for i, name in tblArmy do
+        armies[name] = i
+    end
+
+    ScenarioInfo.CampaignMode = true
+    --Sync.CampaignMode = true
+    import('/lua/sim/simuistate.lua').IsCampaign(true)
+
+	--local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
+    --for i,acu in playerACUs do
+    for i, name in tblArmy do
+        local tblData = Scenario.Armies[name]
+        armies[name] = i
+	
+		--local name = cdata.name
+		--local army = cdata.owner
+		--local name = 'ueb0301'
+	
+		local army = i;
+		local x = army * 100;
+		local y = 900;
+		local player = {}
+		player.acu = CreateUnitHPR('xrb0104', army, x,y,y, 0,0,0)
+
+
+		--player.index = acu:GetArmy();
+		player.index = i;
+		--player.acu = acu;
 		
 		player.acu:SetProductionPerSecondMass(0);
 		player.acu:SetProductionPerSecondEnergy(2000);
@@ -466,14 +572,15 @@ function initPlayers()
 		player.nextRoundBonusProfit = 0; --- card bonuses
 		player.bonusCardSpawned = false;
 		
-		player.armyName = getArmyName(player.acu);
-		players[acu:GetArmy()] = player;
-		
+		player.armyName = getArmyName(player.acu)
+		players[army] = player;
+		LOG("found ACU "..i.." - "..player.armyName)
+
 		-- resource stuff
 		player.acu.SRProduceUnit = onSRProduceUnit
 		player.acu.SRAddUnitResources = onSRAddUnitResources
 
-		player.resourceMultiplyer = player.acu:GetBlueprint().Economy.ProductionPerSecondMass
+		player.resourceMultiplyer = 1 --player.acu:GetBlueprint().Economy.ProductionPerSecondMass
 		
 		-- enhancement stuff (disable all of them!)
         AddUnitEnhancement(player.acu,'dummy', 'Back')	
@@ -1181,18 +1288,18 @@ function checkCountryOwnership()
 								unit.homebase = cdata
 							end
 							
-							if cdata.president != unit and unit.homebase == cdata then
+							if cdata.president != unit then
+								if unit.homebase == cdata then
 								--unit:SetCustomName("") --Citizen of "..cdata.name)
 --								unit:SetImmobile(false)
-								unit:SetCustomName("Citizen of "..cdata.name)
-								unit.isResting = false;
-								unit:SetImmobile(false)
-							else
---								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-								
-								if cdata.president != unit then
+									unit:SetCustomName("Citizen of "..cdata.name)
+									unit.isResting = false;
+									unit:SetImmobile(false)
+								else
+	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
+									
 --									unit:SetSpeedMult(0) -- dont move a lot anymore
-									unit:SetImmobile(true)
+										--unit:SetImmobile(true)
 									if not unit.isResting then
 										unit.TeleportDrain = nil
 --									unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
@@ -1217,7 +1324,6 @@ function checkCountryOwnership()
 										--unit.isResting = true;
 									end
 								end
-								
 							end
 							
 							if not presidentIsAlive(cdata) then
