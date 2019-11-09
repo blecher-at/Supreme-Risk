@@ -1450,24 +1450,25 @@ function checkCountryOwnership()
 					cdata.factory=nil
 				end
 				cdata.isAttacked = true
+				cdata.attacker = enemyArmy
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
 				cdata.isAttacked = false
 			end
 
 			if friendlyUnits == 0 and enemyUnits > 0 then
-				LOG(cdata.name.." liberated by "..enemyArmy)
+				LOG(cdata.name.." liberated by "..cdata.attacker)
 				
-				spawnRandomCard(players[enemyArmyId]) -- spawn card for player
-				cdata.owner = enemyArmy				
+				spawnRandomCard(getPlayerByName(cdata.attacker)) -- spawn card for player
+				cdata.owner = cdata.attacker				
 				cdata.factoryOwnershipChanged = true;
 				cdata.conqueredThisRound = true;
 			end
-			if friendlyUnits == 0 and enemyUnits == 0 and cdata.owner != "ARMY_9" then
-				LOG(cdata.name.." has no owner")
-				cdata.owner = "ARMY_9"
-				cdata.factoryOwnershipChanged = true;
-				cdata.conqueredThisRound = true;			
+			
+			if friendlyUnits == 0 and enemyUnits == 0 then
+				-- respawn president unit if no enemies left after battle
+				LOG("President of "..cdata.name.." resurrected")
+				setAsPresident(cdata, nil)
 			end
 			
 			-- update
@@ -1538,7 +1539,7 @@ function checkEndOfRound()
 
 	roundIdleSeconds = roundIdleSeconds + 1
 	roundTotalTime = roundTotalTime + 1
-	Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
+	--Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
 	
 
 	if roundIdleSeconds >= maxRoundIdleTime then
@@ -1810,9 +1811,12 @@ function updateSecondaryMissions()
 			end
 			
 			-- warn player if he has still not built his units
-			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 0 or roundIdleSeconds == 5 or roundIdleSeconds == 10) then
+			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 3 or roundIdleSeconds == 15) then
 				player.buildObjectiveWarn = true
-				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', 
+				vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', 
+				cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				
 				ScenarioFramework.Dialogue(m1)		
 			end
 			
