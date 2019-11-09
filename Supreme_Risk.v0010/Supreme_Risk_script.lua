@@ -38,7 +38,7 @@ local executing = false
 local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
-local maxRoundIdleTime = 20; -- number of seconds from last round action to begin next round
+local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
 local idleWarnTime = 30; -- warn n seconds before end of round
 local roundnum = 0;
 local roundTotalTime = 0;
@@ -417,9 +417,8 @@ function onSRAddUnitResources(acu, un)
 --	acu.SRUnitsToBuild = acu.SRUnitsToBuild + un
 	acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
 	
-	setPlayerRestrictions(acu.index, acu.SRUnitsToBuild)
-
 	if not acu:IsDead() then
+		setPlayerRestrictions(acu.index, acu.SRUnitsToBuild)
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
 	end
 end
@@ -910,7 +909,7 @@ function spawnFactory(cdata)
 	--end
 
 	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
-		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId())
+		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
 		
 		onRoundAction()
 
@@ -929,7 +928,9 @@ function spawnFactory(cdata)
 			country.friendlyUnits = country.friendlyUnits + 1
 		end
 
-		local player = getPlayerByIndex(country.owner)
+		local player = getPlayerByName(country.owner)
+		
+		LOG("Unit has been Built in "..cdata.name..". Left: "..player.acu.SRUnitsToBuild)
 		setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
 	
 		--self.FactoryBuildFailed = true
@@ -1509,7 +1510,7 @@ function respawnFactory(c)
 		WaitSeconds(1)
 	end
 	
-	WaitSeconds(2)
+	--WaitSeconds(2)
 	--LOG("SPAWNING FACTORY in "..c.name.." - "..string.format("bool: %t", c.isAttacked))
 	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
 		spawnFactory(c)
@@ -1591,8 +1592,9 @@ end
 
 function displayRoundBegin()
 	local ileft = maxRoundIdleTime - roundIdleSeconds
-	PrintText("Round "..roundnum.." - Produce Units and Attack. Next Round will begin after "..ileft.." seconds idle",
-		20,'Red',30,'centertop') 
+	local missionText = players[GetFocusArmy()].mission:getText()
+	PrintText(missionText.." - Round "..roundnum.." - Produce Units and Attack. ",
+		ileft,'Red',30,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
 	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
@@ -1808,9 +1810,9 @@ function updateSecondaryMissions()
 			end
 			
 			-- warn player if he has still not built his units
-			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and maxRoundIdleTime - roundIdleSeconds == 15 then
+			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 0 or roundIdleSeconds == 5 or roundIdleSeconds == 10) then
 				player.buildObjectiveWarn = true
-				local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
 				ScenarioFramework.Dialogue(m1)		
 			end
 			
@@ -1819,6 +1821,10 @@ function updateSecondaryMissions()
 --				LOG("We could cash in bonus cards!")
 				-- Add secondary objective - use these resources!!
 				if not player.cardObjective  then
+					local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Reclaim the wreckages at the map bottom for Bonus Units. ', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
+					ScenarioFramework.Dialogue(m1)		
+
+				
 					player.cardObjective = ScenarioFramework.Objectives.Basic(
 			        '',
 			        'incomplete',
