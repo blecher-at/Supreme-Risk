@@ -539,6 +539,16 @@ function getPlayerByName(name)
 	return nil
 end
 
+
+function getPlayerByIndex(index)
+    for i, player in players do
+		if player.index == index then 
+			return player
+		end
+	end
+	return nil
+end
+
 function initPlayers()
 	-- ACU and Resources
 	local tblArmy = ListArmies()
@@ -923,7 +933,8 @@ function spawnFactory(cdata)
 			country.friendlyUnits = country.friendlyUnits + 1
 		end
 
-		--setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
+		local player = getPlayerByIndex(country.owner)
+		setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
 	
 		--self.FactoryBuildFailed = true
 		--StructureUnit.OnStopBuild(self, unitBeingBuilt, order )
