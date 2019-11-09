@@ -4,15 +4,25 @@
 
 Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Alliance Forever, enabling rules from the board game "RISK"
 
-![Supreme Risk Screenshot](promo/Risk%20Screenshots/board.jpeg)
+![Supreme Risk Screenshot](promo/Risk%20Screenshots/board2.png)
 
 ## History
 
 I first wrote this Map back in 2007, and recently picked it up again to make it compatible with modern FA.
 
 ## How to Play
+### Manual Installation
 
-TBD
+- Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
+- You need a valid license of "Supreme Commander: Forged Alliance" (from steam of other sources)
+- Copy the folder Supreme_Risk.v0010 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010
+
+### Gameplay
+
+- Gameplay is split into 30 second rounds
+- Building units will restart the round timer
+- Players have 30 seconds to liberate neighbouring countries
+- Standard Risk rules apply when determining victories, and new units to be placed
 
 ## Files
 
