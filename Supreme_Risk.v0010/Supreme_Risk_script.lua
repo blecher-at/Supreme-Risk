@@ -391,22 +391,21 @@ function numPlayers()
 end
 
 -- acu functions
-function onSRProduceUnit(acu)
-	if acu.SRUnitsToBuild > 0 then
-		acu.SRUnitsToBuild = acu.SRUnitsToBuild - 1
+function onSRProduceUnit(acu, unitBeingBuilt)
+	if acu.SRUnitsToBuild >= unitBeingBuilt.riskBuildCount then
+		acu.SRUnitsToBuild = acu.SRUnitsToBuild - unitBeingBuilt.riskBuildCount;
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
---		LOG("BUILD::"..acu.SRUnitsToBuild)
+		LOG("BUILD ::"..acu.SRUnitsToBuild)
 
 		-- unpause factories now tha
 		for ci,continent in continents do
 			for i,cdata in continent.countries do		
-			if cdata.factory and cdata.owner == player.armyName then
-				--IssueBuildFactory({cdata.factory}, "uel0106",9999)
-				cdata.factory:SetProductionActive(true);
-				--cdata.factory.onAI = true
+				if cdata.factory and cdata.owner == player.armyName then
+					cdata.factory:SetProductionActive(true);
+					--cdata.factory.onAI = true
+				end
 			end
 		end
-	end
 	
 		return true
 	else
@@ -417,6 +416,9 @@ end
 function onSRAddUnitResources(acu, un)
 --	acu.SRUnitsToBuild = acu.SRUnitsToBuild + un
 	acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
+	
+	setPlayerRestrictions(acu.index, acu.SRUnitsToBuild)
+
 	if not acu:IsDead() then
 		acu:SetProductionPerSecondMass(acu.SRUnitsToBuild) -- update UI
 	end
@@ -444,26 +446,35 @@ function OnStart(self)
 end
 
 function init()
---	dump(ScenarioInfo)
---var["Options"]["Victory"] = "demoralization"
---var["Options"]["Victory"] = "eradication"
 	for index,army in ListArmies() do
 		LOG(index.." "..army.." is playing")
 		
-		#Building Restrictions
-		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
-		ScenarioFramework.RemoveRestriction(index, categories.uel0106)
-		ScenarioFramework.RemoveRestriction(index, categories.ual0106)
-		ScenarioFramework.RemoveRestriction(index, categories.url0106)
-		ScenarioFramework.RemoveRestriction(index, categories.ueb0301)		
+		setPlayerRestrictions(index, 1)
+
 	end
 	
+end
+
+function setPlayerRestrictions( index, SRUnitsToBuild) 
+		
+		--Building Restrictions
+		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
+		ScenarioFramework.RemoveRestriction(index, categories.uel0106) -- mech marine
+		
+		-- striker 
+		if SRUnitsToBuild >= 5 then ScenarioFramework.RemoveRestriction(index, categories.uel0201) end
+		
+		-- lobo
+		if SRUnitsToBuild >= 10 then ScenarioFramework.RemoveRestriction(index, categories.uel0103) end
+		--ScenarioFramework.RemoveRestriction(index, categories.ual0106)
+		--ScenarioFramework.RemoveRestriction(index, categories.url0106)
+		ScenarioFramework.RemoveRestriction(index, categories.ueb0301) -- factory
 end
 
 function getArmyByName(name)
 	for index,army in ListArmies() do
 		if army == name then
-			return index;
+			return index
 		end
 	end
 end
@@ -546,69 +557,72 @@ function initPlayers()
 	--local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
     --for i,acu in playerACUs do
     for i, name in tblArmy do
-        local tblData = Scenario.Armies[name]
-        armies[name] = i
-	
-		--local name = cdata.name
-		--local army = cdata.owner
-		--local name = 'ueb0301'
-	
-		local army = i;
-		local x = army * 100;
-		local y = 900;
-		local player = {}
-		player.acu = CreateUnitHPR('xrb0104', army, x,y,y, 0,0,0)
-
-
-		--player.index = acu:GetArmy();
-		player.index = i;
-		--player.acu = acu;
+		if i <= 6 then
+			local tblData = Scenario.Armies[name]
+			armies[name] = i
 		
-		player.acu:SetProductionPerSecondMass(0);
-		player.acu:SetProductionPerSecondEnergy(2000);
-		player.acu.SRUnitsToBuild = 0;
-		player.acu.player = player;
+			--local name = cdata.name
+			--local army = cdata.owner
+			--local name = 'ueb0301'
 		
-		player.nextRoundBonusProfit = 0; --- card bonuses
-		player.bonusCardSpawned = false;
-		
-		player.armyName = getArmyName(player.acu)
-		players[army] = player;
-		LOG("found ACU "..i.." - "..player.armyName)
+			local army = i;
+			local x = army * 100;
+			local y = 900;
+			local player = {}
+			player.acu = CreateUnitHPR('xrb0104', army, x,y,y, 0,0,0)
 
-		-- resource stuff
-		player.acu.SRProduceUnit = onSRProduceUnit
-		player.acu.SRAddUnitResources = onSRAddUnitResources
 
-		player.resourceMultiplyer = 1 --player.acu:GetBlueprint().Economy.ProductionPerSecondMass
-		
-		-- enhancement stuff (disable all of them!)
-        AddUnitEnhancement(player.acu,'dummy', 'Back')	
-        AddUnitEnhancement(player.acu,'dummy', 'RCH')	
-        AddUnitEnhancement(player.acu,'dummy', 'LCH')	
-		player.acu:RequestRefreshUI()
-  		
-		-- mobility
-		player.acu:SetImmobile(true)
+			--player.index = acu:GetArmy();
+			player.index = i;
+			--player.acu = acu;
+			
+			player.acu:SetProductionPerSecondMass(0);
+			player.acu:SetProductionPerSecondEnergy(2000);
+			player.acu.SRUnitsToBuild = 0;
+			player.acu.player = player;
+			
+			player.nextRoundBonusProfit = 0; --- card bonuses
+			player.bonusCardSpawned = false;
+			
+			player.armyName = getArmyName(player.acu)
+			players[army] = player;
+			LOG("found ACU "..i.." - "..player.armyName)
 
-		--brain
-		player.brain = GetArmyBrain(player.armyName)
-		player.brain.player = player -- callback ( useful for coding an AI later)
-		player.brain.CalculateScore = function(self)
-			return player.empireSize
+			-- resource stuff
+			player.acu.SRProduceUnit = onSRProduceUnit
+			player.acu.SRAddUnitResources = onSRAddUnitResources
+			player.acu.index = player.index;
+
+			player.resourceMultiplyer = 1 --player.acu:GetBlueprint().Economy.ProductionPerSecondMass
+			
+			-- enhancement stuff (disable all of them!)
+			AddUnitEnhancement(player.acu,'dummy', 'Back')	
+			AddUnitEnhancement(player.acu,'dummy', 'RCH')	
+			AddUnitEnhancement(player.acu,'dummy', 'LCH')	
+			player.acu:RequestRefreshUI()
+			
+			-- mobility
+			player.acu:SetImmobile(true)
+
+			--brain
+			player.brain = GetArmyBrain(player.armyName)
+			player.brain.player = player -- callback ( useful for coding an AI later)
+			player.brain.CalculateScore = function(self)
+				return player.empireSize
+			end
+			
+			if not player.brain.OnOrigDefeat then
+				player.brain.OnOrigDefeat = player.brain.OnDefeat
+			end
+			player.brain.OnDefeat = onPlayerDefeat
+			
+			-- helper Functions for an AI or other scripts	
+			player.GetRoundIdleTime = function()	return roundIdleSeconds	end
+			player.GetContinents = 	  function()	return continents		end
+			
+			player.faction = GetFaction(player);
+			player.empireSize = 0;
 		end
-		
-		if not player.brain.OnOrigDefeat then
-			player.brain.OnOrigDefeat = player.brain.OnDefeat
-		end
-		player.brain.OnDefeat = onPlayerDefeat
-		
-		-- helper Functions for an AI or other scripts	
-		player.GetRoundIdleTime = function()	return roundIdleSeconds	end
-		player.GetContinents = 	  function()	return continents		end
-		
-		player.faction = GetFaction(player);
-		player.empireSize = 0;
 	end
 end
 
@@ -857,6 +871,7 @@ function spawnFactory(cdata)
 	local name = cdata.name
 	local army = cdata.owner
 	local name = 'ueb0301'
+	local country = cdata
 	
 --	if GetArmyBrain(cdata.owner):GetFactionIndex() == 2 then
 --		name = 'uab0101';
@@ -888,20 +903,39 @@ function spawnFactory(cdata)
 	--	Warp(unit, {x+0,0,y+5},{0,0,0,1})
 	--end
 
-	u:AddOnUnitBuiltCallback(function (factory, unit) 
-		LOG("Unit has been Built in "..cdata.name..": "..unit:GetEntityId())
+	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
+		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId())
 		
 		onRoundAction()
-		initUnit(unit)
+
+		--dump(unitbp)
+		local count = unitBeingBuilt.riskBuildCount
+		unitBeingBuilt:Destroy()
 		
+		for i=1, count do 
+			local spot = findFreeUnitSpot(country)
+			
+			--local x = country.pos.x-5 + country.friendlyUnits * 1
+			--local y = country.pos.y+5 -- + (country.friendlyUnits / 10) * 1
+			unit = CreateUnitHPR('uel0106', country.owner, spot.x,0,spot.y, 0,0,0)
+			--unit.isInitialPresident = true;
+			initUnit(unit)	
+			country.friendlyUnits = country.friendlyUnits + 1
+		end
+
+		--setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
+	
+		--self.FactoryBuildFailed = true
+		--StructureUnit.OnStopBuild(self, unitBeingBuilt, order )
+		--end
 		--local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+10,cdata.pos.y+10, 0,0,0)
 		--initUnit(unit)
 
 --		unit.TeleportDrain = nil
 --		unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
 --		unit.InitiateTeleportThread = myInitiateTeleportThread
-		local ux = unit:GetNavigator():GetGoalPos()[1];
-		local uy = unit:GetNavigator():GetGoalPos()[3];
+		--local ux = unit:GetNavigator():GetGoalPos()[1];
+		--local uy = unit:GetNavigator():GetGoalPos()[3];
 		
 		-- this causes factory to self-destruct?!
 		--unit:OnTeleportUnit(unit, {x,0,y+5},{0,0,0,1})
@@ -929,20 +963,35 @@ function spawnFactory(cdata)
 --		dump(unitBeingBuilt)
 		
 		local player = players[self:GetArmy()]
+		
+		local count = 1;
+		local unitbp = unitBeingBuilt:GetBlueprint()
+		local unitid = unitbp.BlueprintId;
+		
+		unitBeingBuilt.riskBuildCount = 1;
+		if unitid == 'uel0201' then unitBeingBuilt.riskBuildCount = 5 end
+		if unitid == 'uel0103' then unitBeingBuilt.riskBuildCount = 10 end
 
-		if player.acu:SRProduceUnit() then 
+		if player.acu:SRProduceUnit(unitBeingBuilt) then 
 			LOG(self:GetArmy().." start building ")
 			onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
+			
+			
+			--unitBeingBuilt:Kill()
+			--cdata.factory:SetProductionActive(false);
+
 		else
 			LOG("Build limit reached in Factory")
-			unitBeingBuilt:Kill()
-			IssueStop({cdata.factory});
+			unitBeingBuilt:Destroy() 
+			--IssueStop({cdata.factory});
 			--cdata.factory:SetPaused(true);
 			--cdata.factory:SetProductionActive(false);
 
 --			WaitTicks(50)
 		end
+		
+		
 	end
 		
 	u:SetBuildTimeMultiplier(0.01)
@@ -951,6 +1000,46 @@ function spawnFactory(cdata)
 --	u.UpdateConsumptionValues = function() end
 	
 end
+
+function findFreeUnitSpot(country)
+	local foundPos = {}
+	local initialx = country.pos.x - 4.5;
+	foundPos.x = initialx;
+	foundPos.y = country.pos.y + 5;
+	local maxWidth = 10
+	local step = 1
+	
+	while true do
+		local units = GetUnitsInRect(Rect(foundPos.x, foundPos.y, foundPos.x + 1, foundPos.y + 1))
+		
+		if not units then
+			return foundPos
+		else
+			-- GetUnitsInRect is not exact, need to compare position
+			local unitsfound = 0
+			for i, unit in units do
+				local unitpos = unit:GetPosition()
+--				if (abs(unitpos[1] - foundPos.x) <= 1 and abs(unitpos[3] - foundPos.y) <= 1) then 
+				if unitpos[1] == foundPos.x and unitpos[3] == foundPos.y then 
+					unitsfound = unitsfound + 1
+				end
+			end
+			
+			if unitsfound > 0 then
+				foundPos.x = foundPos.x + step
+				if foundPos.x - initialx >= maxWidth then
+					foundPos.x = initialx
+					foundPos.y = foundPos.y + step
+				end
+			else 
+				return foundPos
+			end
+			
+			
+		end
+	end
+end
+
 
 function initUnit(unit)
 
@@ -1010,13 +1099,17 @@ end
 
 function setAsPresident(country, unit)
 
-	local x = country.pos.x-3
-	local y = country.pos.y+5
-	if not unit then
+	local x = country.pos.x-4
+	local y = country.pos.y-2
+	if unit then
+		unit:Destroy()
+	end
+	
+	--if not unit then
 		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
 		initUnit(unit)		
-	end
+	--end
 
 	-- only alive units can be elected president
 	if not unit:IsBeingBuilt() and not unit:IsDead() then
@@ -1273,7 +1366,7 @@ function checkCountryOwnership()
 						currentOwnerIndex = getPlayerByName(cdata.owner).index
 						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
 							-- own or allied unit
-							unit:SetSpeedMult(30) -- reset for successful liberators
+							unit:SetSpeedMult(5) -- reset for successful liberators
 							unit:SetAccMult(5)
 							unit:SetTurnMult(5)
 							
@@ -1427,8 +1520,8 @@ function respawnFactory(c)
 		local f = c.factory
 		c.factory = nil;
 		f:SetCanBeKilled(true)
-		if not f:IsDead() then f:Kill() end
-		WaitSeconds(3)
+		if not f:IsDead() then f:Destroy() end
+		WaitSeconds(1)
 	end
 	
 	WaitSeconds(2)
