@@ -39,7 +39,7 @@ local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnMin = 10; -- warn n seconds before end of round
+local idleWarnMin = 12; -- warn n seconds before end of round
 local idleWarnMax = 28; -- warn n seconds before end of round
 local roundnum = 1;
 local roundTotalTime = 0;
@@ -184,11 +184,11 @@ local continents =
 		ownerBonus = 5,
 		countries = {
 			{name='Iceland',				pos = {x = 407, y = 333}},
-			{name='Middle Europe',			pos = {x = 489, y = 390}},
-			{name='West Europe',			pos = {x = 460, y = 416}},
+			{name='Central Europe',			pos = {x = 489, y = 390}},
+			{name='Western Europe',			pos = {x = 460, y = 416}},
 			{name='Eastern Europe',			pos = {x = 540, y = 413}},
 			{name='Great Britain',			pos = {x = 448, y = 372}},
-			{name='Scandinavia',			pos = {x = 499, y = 335}},
+			{name='Scandinavia',			pos = {x = 505, y = 345}},
 			{name='Ukraine',				pos = {x = 570, y = 328}},
 			
 		}
@@ -1449,6 +1449,8 @@ function checkCountryOwnership()
 				cdata.owner = cdata.attacker				
 				cdata.factoryOwnershipChanged = true;
 				cdata.conqueredThisRound = true;
+
+
 			end
 			
 			if friendlyUnits == 0 and enemyUnits == 0 then
@@ -1502,6 +1504,22 @@ function respawnFactory(c)
 	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
 		spawnFactory(c)
 		c.factoryOwnershipChanged = false
+		
+		local liberatorPlayer = getPlayerByName(c.owner)
+		local focusPlayer = players[GetFocusArmy()]
+				
+		local income = computeIncome(liberatorPlayer)
+		if focusPlayer == liberatorPlayer and income then
+			PrintText('You liberated '..c.name..'!',
+					24, 'FFCCFFCC',10,'center')
+			PrintText('Next round you will receive '..income.total..' units.',
+					20, 'FFEEFFEE',10,'center')
+			PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
+					15, 'FFEEFFEE',10,'center')
+		else
+			local liberatorNickname = GetArmyBrain(liberatorPlayer.armyName).Nickname
+			PrintText(c.name..' has been liberated by '..liberatorNickname, 20, 'FFFFCCCC',3,'center')
+		end
 	end
 end
 
@@ -1535,6 +1553,12 @@ function checkEndOfRound()
 	
 	displayRoundCountdown(0)
 	
+	if roundIdleSeconds == 10 then
+		local ileft = maxRoundIdleTime - roundIdleSeconds
+	
+		PrintText("Round "..roundnum.." - Liberate Territories to get more reinforcements.", 20, 'FFFFFFFF',ileft - 2,'centertop')
+	end
+
 	-- display after 5 seconds into each round
 	--if roundIdleSeconds == 5  then displayRoundCountdown(5) end
 	--if roundIdleSeconds == 15 then displayRoundCountdown(2) end
@@ -1563,50 +1587,31 @@ function displayMissions()
 end
 
 function displayRoundBegin()
+
+	local player = players[GetFocusArmy()]
 	-- todo: replace with real timer
 	local ileft = maxRoundIdleTime + 2
-	local missionText = players[GetFocusArmy()].mission:getText()
+	local missionText = player.mission:getText()
 	
 	--PrintText('                                           ', 60,'FF0000FF',ileft,'centertop') -- to move text down
 	--PrintText(missionText, 30, 'FF5050FF',ileft,'centertop') 
-	PrintText("Round "..roundnum.." - Produce Units and Attack. ", 20, 'FFFFFFFF',ileft,'centertop') 
+	--PrintText("Round "..roundnum.." - Produce Units and Attack. ", 20, 'FFFFFFFF',ileft,'centertop')
+
+	local objTitle = "Round "..roundnum..' - Reinforce your territories - you can build '..player.acu.SRUnitsToBuild..' units. '
+	if player.build then
+		if player.build.starting then
+			objTitle = objTitle..'(Initial Units)'
+		else
+			objTitle = objTitle..'('..player.build.total..' this round, '..player.build.ter..' from territories, '..player.build.cont..' from continents, '..player.build.bonus..' from wreckage)'
+		end
+	end
+	PrintText(objTitle, 20, 'FFFFFFFF', 9, 'centertop')
+	--end
+
+    --if roundIdleSeconds == 10 then
+	--	PrintText("Round "..roundnum.." - Attack! ", 20, 'FFFFFFFF',ileft - 10,'centertop')
+	--end
 		
-	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
-	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
-	local E01_M01_062 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
-	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'E01_VO', cue = 'E01_Leopard11_T01_0033', faction = 'Cybran'}}
-	local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
-	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'Experimental_VO', cue = 'Experimental_EarthCom_UEF_01219', faction = 'Cybran'}}
-	local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
-	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'Ops', cue = 'Ops_EarthCom_EarthCom_01425', faction = 'Cybran'}}
-
-	local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
-	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'Ops', cue = 'Ops_EarthCom_EarthCom_01425', faction = 'Cybran'}}
-	
-	--		ScenarioFramework.Dialogue(E01_M01_061)
-
-	-- primary objective: 'UEFComputer_NewExpansion_01390' -- COMPUTER_UEF_VO
-	
-	
---	local sounds = {'UEFComputer_UnitRevalation_01373','UEFComputer_UnitRevalation_01371','UEFComputer_Commanders_02450','UEFComputer_UnitRevalation_01374','UEFComputer_UnitRevalation_01372','UEFComputer_UnitRevalation_01370','UEFComputer_Transports_01334','UEFComputer_Transports_01333','UEFComputer_Transports_01332','UEFComputer_Transports_01331','UEFComputer_Transports_01330','UEFComputer_Transports_01329','UEFComputer_Transports_01328','UEFComputer_Stop_01265','UEFComputer_Stop_01264','UEFComputer_Stop_01263','UEFComputer_Stop_01262','UEFComputer_Stop_01261','UEFComputer_Stop_01260','UEFComputer_Stop_01258','UEFComputer_Stop_01257','UEFComputer_Stop_01256','UEFComputer_Resources_01313','UEFComputer_Resources_01312','UEFComputer_Resources_01311','UEFComputer_Resources_01310','UEFComputer_Resources_01309','UEFComputer_Resources_01308','UEFComputer_Resources_01307','UEFComputer_Resources_01306','UEFComputer_Resources_01305','UEFComputer_Resources_01304','UEFComputer_Resources_01303','UEFComputer_Patrol_01249','UEFComputer_Patrol_01248','UEFComputer_Patrol_01247','UEFComputer_Patrol_01246','UEFComputer_Patrol_01245','UEFComputer_Patrol_01244','UEFComputer_Patrol_01243','UEFComputer_Patrol_01241','UEFComputer_Patrol_01239','UEFComputer_Patrol_01238'
---	,'UEFComputer_NewExpansion_01390','UEFComputer_NewExpansion_01389','UEFComputer_NewExpansion_01388','UEFComputer_Move_01193','UEFComputer_Move_01192','UEFComputer_Move_01191','UEFComputer_Move_01190','UEFComputer_Move_01189','UEFComputer_Move_01188','UEFComputer_Move_01187','UEFComputer_Move_01186','UEFComputer_Move_01185','UEFComputer_Move_01184','UEFComputer_Move_01183','UEFComputer_Move_01182','UEFComputer_Move_01181','UEFComputer_Move_01180','UEFComputer_MissileLaunch_01359','UEFComputer_MissileLaunch_01358','UEFComputer_MissileLaunch_01357','UEFComputer_MissileLaunch_01355','UEFComputer_MissileLaunch_01354','UEFComputer_MissileLaunch_01353','UEFComputer_MissileLaunch_01352','UEFComputer_MissileLaunch_01350','UEFComputer_MissileLaunch_01349','UEFComputer_MissileLaunch_01348','UEFComputer_MissileLaunch_01347','UEFComputer_MissileLaunch_01346','UEFComputer_MissileLaunch_01345','UEFComputer_MissileLaunch_01344','UEFComputer_MissileLaunch_01343','UEFComputer_MissileLaunch_01342','UEFComputer_MissileLaunch_01341','UEFComputer_MissileLaunch_01340','UEFComputer_MissileLaunch_01339','UEFComputer_MissileLaunch_01338','UEFComputer_MissileLaunch_01337','UEFComputer_MissileLaunch_01336','UEFComputer_MapExpansion_01381','UEFComputer_MapExpansion_01380','UEFComputer_Intel_01199','UEFComputer_Intel_01198','UEFComputer_Intel_01197','UEFComputer_Intel_01196','UEFComputer_Intel_01195','UEFComputer_Intel_01194','UEFComputer_Failed_01422','UEFComputer_Failed_01421','UEFComputer_Failed_01420','UEFComputer_Failed_01408','UEFComputer_Failed_01407','UEFComputer_Failed_01406','UEFComputer_Failed_01405','UEFComputer_Expiremental_01369','UEFComputer_Expiremental_01368','UEFComputer_Expiremental_01367','UEFComputer_Expiremental_01366','UEFComputer_Expiremental_01365','UEFComputer_Expiremental_01364','UEFComputer_Expiremental_01363','UEFComputer_Expiremental_01362','UEFComputer_Expiremental_01361','UEFComputer_Expiremental_01360','UEFComputer_Engineering_01284','UEFComputer_Engineering_01283','UEFComputer_Engineering_01282','UEFComputer_Engineering_01281','UEFComputer_Engineering_01280','UEFComputer_Engineering_01279','UEFComputer_Construction_01276','UEFComputer_Construction_01275','UEFComputer_Construction_01274','UEFComputer_Construction_01273','UEFComputer_Construction_01272','UEFComputer_Construction_01271','UEFComputer_Construction_01270','UEFComputer_Construction_01269','UEFComputer_Completed_01404','UEFComputer_Completed_01403','UEFComputer_Completed_01402','UEFComputer_Completed_01401','UEFComputer_Completed_01400','UEFComputer_Completed_01399','UEFComputer_Completed_01398','UEFComputer_Commanders_01327','UEFComputer_Commanders_01326','UEFComputer_Commanders_01325','UEFComputer_Commanders_01324','UEFComputer_Commanders_01323','UEFComputer_Commanders_01322','UEFComputer_Commanders_01321','UEFComputer_Commanders_01320','UEFComputer_Commanders_01319','UEFComputer_Commanders_01318','UEFComputer_Commanders_01317','UEFComputer_Commanders_01316','UEFComputer_Commanders_01315','UEFComputer_CommandControl_01290','UEFComputer_CommandControl_01289','UEFComputer_CommandControl_01288','UEFComputer_CommandControl_01287','UEFComputer_CommandControl_01286','UEFComputer_CommandControl_01285','UEFComputer_CommandCap_01302','UEFComputer_CommandCap_01301','UEFComputer_CommandCap_01300','UEFComputer_CommandCap_01299','UEFComputer_CommandCap_01297','UEFComputer_CommandCap_01296','UEFComputer_CommandCap_01295','UEFComputer_CommandCap_01294','UEFComputer_CommandCap_01293','UEFComputer_CommandCap_01292','UEFComputer_CommandCap_01291','UEFComputer_Combat_01232','UEFComputer_Combat_01231','UEFComputer_Combat_01229','UEFComputer_Combat_01227','UEFComputer_Combat_01226','UEFComputer_Combat_01225','UEFComputer_Combat_01222','UEFComputer_Combat_01221','UEFComputer_Combat_01218','UEFComputer_Combat_01217','UEFComputer_Combat_01216','UEFComputer_Combat_01215','UEFComputer_Combat_01214','UEFComputer_Combat_01213','UEFComputer_Combat_01212','UEFComputer_Combat_01211','UEFComputer_Combat_01210','UEFComputer_Combat_01209','UEFComputer_Combat_01208','UEFComputer_Combat_01207','UEFComputer_Combat_01206','UEFComputer_Combat_01205','UEFComputer_Combat_01204','UEFComputer_Combat_01203','UEFComputer_Combat_01202','UEFComputer_Combat_01201','UEFComputer_Combat_01200','UEFComputer_Changed_01435','UEFComputer_Changed_01434','UEFComputer_Changed_01424','UEFComputer_Changed_01423','UEFComputer_Basic_Orders_01179','UEFComputer_Basic_Orders_01178','UEFComputer_Basic_Orders_01177','UEFComputer_Basic_Orders_01176','UEFComputer_Basic_Orders_01175','UEFComputer_Basic_Orders_01174','UEFComputer_Basic_Orders_01173','UEFComputer_Basic_Orders_01172','UEFComputer_Basic_Orders_01170','UEFComputer_Basic_Orders_01169','UEFComputer_Basic_Orders_01168','UEFComputer_Basic_Orders_01167','UEFComputer_Basic_Orders_01166','UEFComputer_Basic_Orders_01164','UEFComputer_Basic_Orders_01163','UEFComputer_Assist_01268','UEFComputer_Assist_01267','UEFComputer_Assist_01266','UEFComputer_MissileLaunch_01356','UEFComputer_MissileLaunch_01351','UEFComputer_Commanders_01314','UEFComputer_CommandCap_01298','UEFComputer_TransportIsFull'}
-	
---	for i,s in sounds do
---		local E01_M01_061 = {{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
---		vid = 'E01_Leopard11_T01_0033.sfd', bank = 'COMPUTER_UEF_VO', cue = s, faction = 'Cybran'}}
---	
---		ScenarioFramework.Dialogue(E01_M01_061)
---		WaitSeconds(1)
---	end
-	
-
---	{text = '<LOC E01_T01_030_010>[{i Leopard11}]: We want to be free. Is that too much to ask?', 
----	vid = 'E01_Leopard11_T01_0033.sfd', bank = 'E01_VO', cue = 'E01_Leopard11_T01_0033', faction = 'Cybran'})
---	ScenarioFramework.CreateTimerTrigger( M1Dialog4, M1DialogDelay4 )
---	ScenarioFramework.CreateTimerTrigger( M1Dialog4, M1DialogDelay4 )
-	
---	table.insert(Sync.MissionText, '<LOC A06_M01_010_010>[{i Choir}]: We have prepared a base for you.')
-
 end
 
 
@@ -1785,7 +1790,7 @@ function updateSecondaryMissions()
 			end
 			
 			-- warn player if he has still not built his units
-			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 3 or roundIdleSeconds == 15) then
+			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 10 or roundIdleSeconds == 20) then
 				player.buildObjectiveWarn = true
 				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', 
 				vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', 
@@ -1880,7 +1885,7 @@ function mainThread()
 		checkEndOfRound()
 		checkEndOfGame()
 		
-		--updateSecondaryMissions()
+		updateSecondaryMissions()
 --		updateScore()
 		WaitSeconds(1)
 	end
