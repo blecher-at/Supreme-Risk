@@ -39,8 +39,9 @@ local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnTime = 30; -- warn n seconds before end of round
-local roundnum = 0;
+local idleWarnMin = 10; -- warn n seconds before end of round
+local idleWarnMax = 28; -- warn n seconds before end of round
+local roundnum = 1;
 local roundTotalTime = 0;
 
 local players = {};
@@ -1532,9 +1533,7 @@ function checkEndOfRound()
 		beginNextRound()
 	end
 	
-	if roundIdleSeconds+idleWarnTime > maxRoundIdleTime and roundIdleSeconds < maxRoundIdleTime-0 then
-		displayRoundCountdown(0)
-	end
+	displayRoundCountdown(0)
 	
 	-- display after 5 seconds into each round
 	--if roundIdleSeconds == 5  then displayRoundCountdown(5) end
@@ -1542,48 +1541,34 @@ function checkEndOfRound()
 end
 
 function displayRoundCountdown(staytime)
+	if roundIdleSeconds < idleWarnMin or roundIdleSeconds > idleWarnMax then
+		return
+	end
 	local ileft = maxRoundIdleTime - roundIdleSeconds
-	--PrintText("Reinforcements arrive in 0:"..ileft.."               \r\nX",20,'FFFFFFFF',staytime,'rightbottom') 
-	PrintText("Reinforcements arrive in 0:"..ileft.."",20,'AAAAAA',staytime,'centertop') 
-	--PrintText("Next Round will start in "..ileft.." secondA",50,'FFFFFF10',staytime,'centerbottom') 
-	WaitTicks(10)
+	
+	-- prefix seconds
+	if (ileft < 10) then ileft = "0"..ileft end
+	
+	PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
 end
 
 function displayMissions()
   
 	local mission = players[GetFocusArmy()].mission
-
---	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Mission', 
---	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'COMPUTER_UEF_VO', cue = 'UEFComputer_NewExpansion_01389', faction = 'UEF'}}
---	ScenarioFramework.Dialogue(m1)
-
+	local missionText = mission:getText()
 	
---	        {ShowFaction = 'Cybran'}'capture'  'capture'
-	if mission then
-		--PrintText(mission,30,'FFFFFFFF',staytime,'centertop') 
-		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: '..mission:getText()..'', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
---		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild.." units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
-		ScenarioFramework.Dialogue(m1)		
-
-	ScenarioFramework.Objectives.Basic(
-        'primary',
-        'incomplete',
-        'Primary Mission: '..mission:getText(),
-        "detail",
-        ScenarioFramework.Objectives.GetActionIcon(mission.icon),
-        {Category = categories.uel0001}
-    )
-	end
---	WaitSeconds(1)
+	PrintText('                                           ', 60,'FF0000FF', 999999,'centertop') -- to move text down
+	PrintText(missionText, 30, '00FF4040',999999,'centertop') 
 	
 end
 
 function displayRoundBegin()
-	local ileft = maxRoundIdleTime  -- - roundIdleSeconds
+	-- todo: replace with real timer
+	local ileft = maxRoundIdleTime + 2
 	local missionText = players[GetFocusArmy()].mission:getText()
 	
-	PrintText('                                           ', 60,'FF0000FF',ileft,'centertop') -- to move text down
-	PrintText(missionText, 30, 'FF2020FF',ileft,'centertop') 
+	--PrintText('                                           ', 60,'FF0000FF',ileft,'centertop') -- to move text down
+	--PrintText(missionText, 30, 'FF5050FF',ileft,'centertop') 
 	PrintText("Round "..roundnum.." - Produce Units and Attack. ", 20, 'FFFFFFFF',ileft,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
@@ -1895,7 +1880,7 @@ function mainThread()
 		checkEndOfRound()
 		checkEndOfGame()
 		
-		updateSecondaryMissions()
+		--updateSecondaryMissions()
 --		updateScore()
 		WaitSeconds(1)
 	end
