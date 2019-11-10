@@ -96,6 +96,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_1'] = 
         {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
@@ -129,6 +130,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_2'] = 
         {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
@@ -162,6 +164,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_3'] = 
         {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
@@ -195,6 +198,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_4'] = 
         {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
@@ -228,6 +232,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_5'] = 
         {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
@@ -261,72 +266,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_6'] = 
         {
-            personality = '',
-            plans = '',
-            color = 0,
-            faction = 0,
-            Economy = {
-                mass = 0,
-                energy = 0,
-            },
-            Alliances = {
-            },
-            ['Units'] = GROUP {
-                orders = '',
-                platoon = '',
-                Units = {
-                    ['INITIAL'] = GROUP {
-                        orders = '',
-                        platoon = '',
-                        Units = {
-                        },
-                    },
-                },
-            },
-            PlatoonBuilders = {
-                next_platoon_builder_id = '1',
-                Builders = {
-                },
-            },
-        },
-        --[[                                                                           ]]--
-        --[[  ARMY_9                                                                   ]]--
-        --[[                                                                           ]]--
-        ['ARMY_9'] = 
-        {
-            personality = '',
-            plans = '',
-            color = 0,
-            faction = 0,
-            Economy = {
-                mass = 0,
-                energy = 0,
-            },
-            Alliances = {
-            },
-            ['Units'] = GROUP {
-                orders = '',
-                platoon = '',
-                Units = {
-                    ['INITIAL'] = GROUP {
-                        orders = '',
-                        platoon = '',
-                        Units = {
-                        },
-                    },
-                },
-            },
-            PlatoonBuilders = {
-                next_platoon_builder_id = '1',
-                Builders = {
-                },
-            },
-        },
-        --[[                                                                           ]]--
-        --[[  NEUTRAL_CIVILIAN                                                         ]]--
-        --[[                                                                           ]]--
-        ['NEUTRAL_CIVILIAN'] = 
-        {
+			SRInit = true,
             personality = '',
             plans = '',
             color = 0,
