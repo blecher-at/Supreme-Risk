@@ -39,8 +39,9 @@ local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnTime = 30; -- warn n seconds before end of round
-local roundnum = 0;
+local idleWarnMin = 10; -- warn n seconds before end of round
+local idleWarnMax = 28; -- warn n seconds before end of round
+local roundnum = 1;
 local roundTotalTime = 0;
 
 local players = {};
@@ -95,28 +96,6 @@ function Pos(x,y,z)
 	return p
 end
   
-function circleWalls(cdata)
-	local x = cdata.pos.x
-	local y = cdata.pos.y
-
-	local wd = baseSizeMeters;
-	local wallDistance = 1;
-	local yo = 4;
-	local xo = meter(wd)
-	while yo+wallDistance < xo do
-		xo = (math.sqrt(meter(wd)*meter(wd)-yo*yo))
-		createWall4("ARMY_9",x,y,xo,yo)
-		yo = yo+wallDistance
-	end
-	
-	xo = 4;
-	while xo < yo do
-		yo = (math.sqrt(meter(wd)*meter(wd)-xo*xo))
-		createWall4("ARMY_9",x,y,xo,yo)
-		xo = xo+wallDistance
-	end
-end 
-
 local trees20 = {
 --	'/env/Evergreen/Props/Trees/Groups/DC01_group1_prop.bp',
 --	'/env/Evergreen/Props/Trees/Groups/DC01_group2_prop.bp',
@@ -183,10 +162,10 @@ local continents =
 	sa = {	name='South America',
 		ownerBonus = 2,
 		countries = {
-			{name='Argentinia',				pos = {x = 290, y = 710}},
+			{name='Argentina',				pos = {x = 290, y = 670}},
 			{name='Brasil',					pos = {x = 350, y = 590}},	
 			{name='Venezuela',				pos = {x = 250, y = 540}},	
-			{name='Peru',					pos = {x = 270, y = 592}},	
+			{name='Peru',					pos = {x = 280, y = 595}},	
 		}
 	},
 	af = {	name='Africa',
@@ -251,14 +230,14 @@ local teleportationZones = {
 		targetZone = Rect(700,0,1024,500), -- move order into this zone is issued
 		name		='Alaska',
 		teleporterSource = Pos(1,303),
-		teleporterDest = Pos(1021,307),
+		teleporterDest = Pos(940,307),
     },
 	{
 		sourceZone = Rect(700,0,1024,500), -- redirect if into zone and 
 		targetZone = Rect(1,1,300,500), -- move order into this zone is issued
 		name		='kamc',
 		teleporterSource = Pos(1022,305),
-		teleporterDest = Pos(4,300),
+		teleporterDest = Pos(60,300),
     }
 }
   
@@ -555,9 +534,9 @@ function initPlayers()
     local bCreateInitial = ShouldCreateInitialArmyUnits()
     local armies = {}
 	
-    for i, name in tblArmy do
-        armies[name] = i
-    end
+    --for i, name in tblArmy do
+    --    armies[name] = i
+    --end
 
     ScenarioInfo.CampaignMode = true
     --Sync.CampaignMode = true
@@ -565,11 +544,15 @@ function initPlayers()
 
 	--local playerACUs = GetUnitsInRect(Rect(0,900,1024,1024))
     --for i,acu in playerACUs do
-    for i, name in tblArmy do
-		if i <= 6 then
-			local tblData = Scenario.Armies[name]
-			armies[name] = i
+	
+     for i, name in tblArmy do
+		local tblData = Scenario.Armies[name]
+		dump(tblData)
 		
+		-- spawn ARMY_9 as 3rd player if only two players are in the game
+		if tblData.SRInit or i == 3 and not tblData.SRInit then
+			--armies[name] = i
+			
 			local army = i;
 			local x = army * ( 1024 / 7);
 			local y = 910;
@@ -710,16 +693,21 @@ function addMissionContinent(cc)
 		owner = false,
 		getText = function(self)
 			local names = ""
+			local count = table.getn(self.reqContinents);
 			for i,continent in self.reqContinents do
 				local cn = ""
 				if continent == "any" then 
-					cn = "a 3rd continent of your choice"
+					cn = ", and a 3rd continent of your choice"
 				else
 					cn = continent.name
 				end
 			
-				if i < table.getn(self.reqContinents) then
-					names = names..cn.." and "
+				if i == 1 and count > 1 then
+					if count == 2 then
+						names = names..cn.." and "
+					else
+						names = names..cn..", "
+					end
 				else
 					names = names..cn
 				end
@@ -911,7 +899,7 @@ function spawnFactory(cdata)
 	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
 		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
 		
-		onRoundAction()
+		--onRoundAction()
 
 		--dump(unitbp)
 		local count = unitBeingBuilt.riskBuildCount
@@ -960,7 +948,7 @@ function spawnFactory(cdata)
 
 		if player.acu:SRProduceUnit(unitBeingBuilt) then 
 			LOG(self:GetArmy().." start building ")
-			onRoundAction()
+			--onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
 			
 			
@@ -1206,8 +1194,6 @@ function checkTeleportationZones()
 --						dump(unit:GetNavigator():GetCurrentTargetPos())
 					
 						-- redirect to teleport zone
-						--unit:GetNavigator():SetGoal(zone.teleporterSource)
-						--IssueStop({unit})
 --						LOG("WP status: "..unit:GetNavigator():GetStatus())
 						unit:GetNavigator():SetGoal(zone.teleporterSource)
 --						unit:GetNavigator():SetSpeedThroughGoal(zone.teleporterSource)
@@ -1218,7 +1204,7 @@ function checkTeleportationZones()
 			end
 		end
 		
-		local unitsToTeleport = GetUnitsInRect(Pos2Rect(zone.teleporterSource, 10))
+		local unitsToTeleport = GetUnitsInRect(Pos2Rect(zone.teleporterSource, 40))
 		if unitsToTeleport then
 			for index,unit in unitsToTeleport do
 				-- teleport these units
@@ -1541,15 +1527,13 @@ function checkEndOfRound()
 	roundTotalTime = roundTotalTime + 1
 	--Sync.ObjectiveTimer = maxRoundIdleTime - roundIdleSeconds --targetTime - math.floor(GetGameTimeSeconds())
 	
-
+	-- Restart Round
 	if roundIdleSeconds >= maxRoundIdleTime then
-		onRoundAction()
+		roundIdleSeconds = 0
 		beginNextRound()
 	end
 	
-	if roundIdleSeconds+idleWarnTime > maxRoundIdleTime and roundIdleSeconds < maxRoundIdleTime-0 then
-		displayRoundCountdown(0)
-	end
+	displayRoundCountdown(0)
 	
 	-- display after 5 seconds into each round
 	--if roundIdleSeconds == 5  then displayRoundCountdown(5) end
@@ -1557,45 +1541,35 @@ function checkEndOfRound()
 end
 
 function displayRoundCountdown(staytime)
+	if roundIdleSeconds < idleWarnMin or roundIdleSeconds > idleWarnMax then
+		return
+	end
 	local ileft = maxRoundIdleTime - roundIdleSeconds
-	PrintText("Next Round will start in "..ileft.." seconds",20,'FFFFFFFF',staytime,'centerbottom') 
-	WaitTicks(3)
+	
+	-- prefix seconds
+	if (ileft < 10) then ileft = "0"..ileft end
+	
+	PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
 end
 
 function displayMissions()
   
 	local mission = players[GetFocusArmy()].mission
-
---	local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Mission', 
---	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'COMPUTER_UEF_VO', cue = 'UEFComputer_NewExpansion_01389', faction = 'UEF'}}
---	ScenarioFramework.Dialogue(m1)
-
+	local missionText = mission:getText()
 	
---	        {ShowFaction = 'Cybran'}'capture'  'capture'
-	if mission then
-		--PrintText(mission,30,'FFFFFFFF',staytime,'centertop') 
-		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: '..mission:getText()..'', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
---		local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: You have '..player.acu.SRUnitsToBuild.." units left to build, Sir.', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
-		ScenarioFramework.Dialogue(m1)		
-
-	ScenarioFramework.Objectives.Basic(
-        'primary',
-        'incomplete',
-        'Primary Mission: '..mission:getText(),
-        "detail",
-        ScenarioFramework.Objectives.GetActionIcon(mission.icon),
-        {Category = categories.uel0001}
-    )
-	end
---	WaitSeconds(1)
+	PrintText('                                           ', 60,'FF0000FF', 999999,'centertop') -- to move text down
+	PrintText(missionText, 30, '00FF4040',999999,'centertop') 
 	
 end
 
 function displayRoundBegin()
-	local ileft = maxRoundIdleTime - roundIdleSeconds
+	-- todo: replace with real timer
+	local ileft = maxRoundIdleTime + 2
 	local missionText = players[GetFocusArmy()].mission:getText()
-	PrintText(missionText.." - Round "..roundnum.." - Produce Units and Attack. ",
-		ileft,'Red',30,'centertop') 
+	
+	--PrintText('                                           ', 60,'FF0000FF',ileft,'centertop') -- to move text down
+	--PrintText(missionText, 30, 'FF5050FF',ileft,'centertop') 
+	PrintText("Round "..roundnum.." - Produce Units and Attack. ", 20, 'FFFFFFFF',ileft,'centertop') 
 		
 	local E01_M01_060 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Sir, maybe you should check your objectives.', 
 	vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'},}
@@ -1906,7 +1880,7 @@ function mainThread()
 		checkEndOfRound()
 		checkEndOfGame()
 		
-		updateSecondaryMissions()
+		--updateSecondaryMissions()
 --		updateScore()
 		WaitSeconds(1)
 	end
