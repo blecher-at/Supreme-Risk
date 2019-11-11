@@ -35,12 +35,11 @@ local UIUtil = import('/lua/ui/uiutil.lua')
 --local gameParent = import('/lua/ui/game/gamemain.lua').GetGameParent()
 
 local executing = false
-local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
-local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnMin = 12; -- warn n seconds before end of round
-local idleWarnMax = 28; -- warn n seconds before end of round
+local maxRoundIdleTime = 45; -- number of seconds from last round action to begin next round
+local idleWarnMin = maxRoundIdleTime / 2; -- warn n seconds before end of round
+local idleWarnMax = maxRoundIdleTime - 2; -- warn n seconds before end of round
 local roundnum = 1;
 local roundTotalTime = 0;
 
@@ -1275,7 +1274,7 @@ function checkCountryOwnership()
 						local h = 1
 						unit:SetMaxHealth(h)
 						unit:SetHealth(nil, h)
---				LOG(unit:GetBlueprint())
+						--	LOG(unit:GetBlueprint())
 					
 						if(armycounters[unit:GetArmy()]) then
 							armycounters[unit:GetArmy()] = armycounters[unit:GetArmy()] +1
@@ -1287,9 +1286,9 @@ function checkCountryOwnership()
 						currentOwnerIndex = getPlayerByName(cdata.owner).index
 						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
 							-- own or allied unit
-							unit:SetSpeedMult(5) -- reset for successful liberators
-							unit:SetAccMult(5)
-							unit:SetTurnMult(5)
+							unit:SetSpeedMult(1.75) -- reset for successful liberators
+							unit:SetAccMult(1.75)
+							unit:SetTurnMult(1)
 							
 							weapon:ChangeRateOfFire(2)
 --						weapon:SetTurretYawSpeed(300)
@@ -1303,49 +1302,24 @@ function checkCountryOwnership()
 							end
 							
 							if cdata.president != unit then
+							
+							
+								-- Code for "resting". units are not allowed to traverse territories they came from or did not liberate in this round
 								if unit.homebase == cdata then
-								--unit:SetCustomName("") --Citizen of "..cdata.name)
---								unit:SetImmobile(false)
 									unit:SetCustomName("Citizen of "..cdata.name)
 									unit.isResting = false;
 									unit:SetImmobile(false)
 								else
 	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-									
---									unit:SetSpeedMult(0) -- dont move a lot anymore
-										--unit:SetImmobile(true)
-									if not unit.isResting then
-										unit.TeleportDrain = nil
---									unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
-										unit.InitiateTeleportThread = myInitiateTeleportThread
-										if not cdata.restingpos or cdata.restingpos > 20 then
-											cdata.restingpos = 0
-										else
-											cdata.restingpos = cdata.restingpos + 1
-										end
-										
-										if cdata.restingpos>10 then
-											--unit:OnTeleportUnit(unit, {cdata.pos.x-15+cdata.restingpos,0,cdata.pos.y-6},{0,0,0,1})
-										else
-											--unit:OnTeleportUnit(unit, {cdata.pos.x-5+cdata.restingpos,0,cdata.pos.y-4},{0,0,0,1})										
-										end
-										
-										--if cdata.restingpos == 0 then
-										--	unit:SetCustomName("resting - moving next round again") --Citizen of "..cdata.name)
-										--else
-										--	unit:SetCustomName("resting") --Citizen of "..cdata.name)
-										--end
-										--unit.isResting = true;
-									end
+									unit:SetSpeedMult(0.2) -- dont move a lot anymore
+									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
 							end
 							
 							if not presidentIsAlive(cdata) then
-							LOG("President of "..cdata.name.." is dead")
+							LOG("President of "..cdata.name.." is dead, promoting next of kin")
 								setAsPresident(cdata, unit)
 							end
-							
-
 							
 						else
 							-- enemy unit
@@ -1403,10 +1377,15 @@ function checkCountryOwnership()
 
 			end
 			
+			-- respawn president unit if no enemies left after battle
 			if friendlyUnits == 0 and enemyUnits == 0 then
-				-- respawn president unit if no enemies left after battle
 				LOG("President of "..cdata.name.." resurrected")
 				setAsPresident(cdata, nil)
+			end
+			
+			-- respawn factory if no longer attacked
+			if not cdata.isAttacked and not cdata.factory then
+				cdata.factoryOwnershipChanged = true
 			end
 			
 			-- update
@@ -1721,18 +1700,16 @@ function updateSecondaryMissions()
 --				LOG("We could cash in bonus cards!")
 				-- Add secondary objective - use these resources!!
 				if not player.cardObjective  then
-					local m1 = {{text = '<LOC E01_M01_060_010>Reclaim the wreckages at the map bottom for Bonus Units. ', 
-						vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', 
-						cue = 'E01_EarthCom_M01_01131', 
-						faction = 'UEF'}}
+					PrintText('Reclaim the wreckages at the map bottom for Bonus Units',
+						20, 'FFCCFFCC',10,'center')
 
-					ScenarioFramework.Dialogue(m1)	
 					player.cardObjective = true
 				end
 			else
 				-- reset objective
 				if player.cardObjective and player.nextRoundBonusProfit then
-				
+					local income = computeIncome(player)
+
 					PrintText('You reclaimed wreckage!',
 						24, 'FFCCFFCC',10,'center')
 					PrintText('Next round you will receive '..income.total..' units.',
