@@ -35,12 +35,11 @@ local UIUtil = import('/lua/ui/uiutil.lua')
 --local gameParent = import('/lua/ui/game/gamemain.lua').GetGameParent()
 
 local executing = false
-local beatTime = 5
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
-local maxRoundIdleTime = 30; -- number of seconds from last round action to begin next round
-local idleWarnMin = 12; -- warn n seconds before end of round
-local idleWarnMax = 28; -- warn n seconds before end of round
+local maxRoundIdleTime = 45; -- number of seconds from last round action to begin next round
+local idleWarnMin = maxRoundIdleTime / 2; -- warn n seconds before end of round
+local idleWarnMax = maxRoundIdleTime - 2; -- warn n seconds before end of round
 local roundnum = 1;
 local roundTotalTime = 0;
 
@@ -162,7 +161,7 @@ local continents =
 	sa = {	name='South America',
 		ownerBonus = 2,
 		countries = {
-			{name='Argentina',				pos = {x = 290, y = 670}},
+			{name='Argentina',				pos = {x = 295, y = 670}},
 			{name='Brasil',					pos = {x = 350, y = 590}},	
 			{name='Venezuela',				pos = {x = 250, y = 540}},	
 			{name='Peru',					pos = {x = 280, y = 595}},	
@@ -280,10 +279,6 @@ function InitializeSupremeRiskArmies()
     local tblGroups = {}
     local tblArmy = ListArmies()
 
-    local civOpt = ScenarioInfo.Options.CivilianAlliance
-
-    --local bCreateInitial = ShouldCreateInitialArmyUnits()
-
     for iArmy, strArmy in pairs(tblArmy) do
         local tblData = Scenario.Armies[strArmy]
 
@@ -300,15 +295,13 @@ function InitializeSupremeRiskArmies()
 
             --GetArmyBrain(strArmy):InitializePlatoonBuildManager()
             --LoadArmyPBMBuilders(strArmy)
-            if GetArmyBrain(strArmy).SkirmishSystems then
-                GetArmyBrain(strArmy):InitializeSkirmishSystems()
-            end
+            --if GetArmyBrain(strArmy).SkirmishSystems then
+            --    GetArmyBrain(strArmy):InitializeSkirmishSystems()
+            --end
 
-            local armyIsCiv = ScenarioInfo.ArmySetup[strArmy].Civilian
-
-            if armyIsCiv and civOpt ~= 'neutral' and strArmy ~= 'NEUTRAL_CIVILIAN' then -- give enemy civilians darker color
-                SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
-            end
+            --if strArmy = 'ARMY_7' then -- give enemy civilians darker color
+            --    SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
+            --end
 
             ----[ irumsey                                                         ]--
             ----[ Temporary defaults.  Make sure some fighting will break out.    ]--
@@ -318,31 +311,6 @@ function InitializeSupremeRiskArmies()
                 local state = 'Enemy'
 
                 if a ~= e then
-                    if armyIsCiv or enemyIsCiv then
-                        if civOpt == 'neutral' or strArmy == 'NEUTRAL_CIVILIAN' or strEnemy == 'NEUTRAL_CIVILIAN' then
-                            state = 'Neutral'
-                        end
-
-                        if ScenarioInfo.Options['RevealCivilians'] == 'Yes' and ScenarioInfo.ArmySetup[strEnemy].Human then
-                            ForkThread(function()
-                                WaitSeconds(.1)
-                                local real_state = IsAlly(a, e) and 'Ally' or IsEnemy(a, e) and 'Enemy' or 'Neutral'
-
-                                GetArmyBrain(e):SetupArmyIntelTrigger({
-                                    Category=categories.ALLUNITS,
-                                    Type='LOSNow',
-                                    Value=true,
-                                    OnceOnly=true,
-                                    TargetAIBrain=GetArmyBrain(a),
-                                    CallbackFunction=function()
-                                        SetAlliance(a, e, real_state)
-                                    end,
-                                })
-                                SetAlliance(a, e, 'Ally')
-                            end)
-                        end
-                    end
-
                     if state then
                         SetAlliance(a, e, state)
                     end
@@ -920,17 +888,8 @@ function spawnFactory(cdata)
 		
 		LOG("Unit has been Built in "..cdata.name..". Left: "..player.acu.SRUnitsToBuild)
 		setPlayerRestrictions(country.owner, player.acu.SRUnitsToBuild)
-	
-		--self.FactoryBuildFailed = true
-		--StructureUnit.OnStopBuild(self, unitBeingBuilt, order )
-		--end
-		--local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x,cdata.pos.y+10,cdata.pos.y+10, 0,0,0)
-		--initUnit(unit)
-
-
 		
-		end
-		, categories.MOBILE)
+	end, categories.MOBILE)
 
 	u.OnStartBuildOriginal = u.OnStartBuild
 	u.OnStartBuild = function(self, unitBeingBuilt, order)
@@ -950,19 +909,9 @@ function spawnFactory(cdata)
 			LOG(self:GetArmy().." start building ")
 			--onRoundAction()
 			self:OnStartBuildOriginal(unitBeingBuilt, order)
-			
-			
-			--unitBeingBuilt:Kill()
-			--cdata.factory:SetProductionActive(false);
-
 		else
 			LOG("Build limit reached in Factory")
 			unitBeingBuilt:Destroy() 
-			--IssueStop({cdata.factory});
-			--cdata.factory:SetPaused(true);
-			--cdata.factory:SetProductionActive(false);
-
---			WaitTicks(50)
 		end
 		
 		
@@ -971,7 +920,6 @@ function spawnFactory(cdata)
 	u:SetBuildTimeMultiplier(0.01)
 	u:SetConsumptionPerSecondMass(0)
 	u.SetConsumptionPerSecondMass = function() end
---	u.UpdateConsumptionValues = function() end
 	
 end
 
@@ -1326,7 +1274,7 @@ function checkCountryOwnership()
 						local h = 1
 						unit:SetMaxHealth(h)
 						unit:SetHealth(nil, h)
---				LOG(unit:GetBlueprint())
+						--	LOG(unit:GetBlueprint())
 					
 						if(armycounters[unit:GetArmy()]) then
 							armycounters[unit:GetArmy()] = armycounters[unit:GetArmy()] +1
@@ -1338,9 +1286,9 @@ function checkCountryOwnership()
 						currentOwnerIndex = getPlayerByName(cdata.owner).index
 						if currentOwnerIndex and IsAlly(unit:GetArmy(), currentOwnerIndex) then
 							-- own or allied unit
-							unit:SetSpeedMult(5) -- reset for successful liberators
-							unit:SetAccMult(5)
-							unit:SetTurnMult(5)
+							unit:SetSpeedMult(1.75) -- reset for successful liberators
+							unit:SetAccMult(1.75)
+							unit:SetTurnMult(1)
 							
 							weapon:ChangeRateOfFire(2)
 --						weapon:SetTurretYawSpeed(300)
@@ -1354,49 +1302,24 @@ function checkCountryOwnership()
 							end
 							
 							if cdata.president != unit then
+							
+							
+								-- Code for "resting". units are not allowed to traverse territories they came from or did not liberate in this round
 								if unit.homebase == cdata then
-								--unit:SetCustomName("") --Citizen of "..cdata.name)
---								unit:SetImmobile(false)
 									unit:SetCustomName("Citizen of "..cdata.name)
 									unit.isResting = false;
 									unit:SetImmobile(false)
 								else
 	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-									
---									unit:SetSpeedMult(0) -- dont move a lot anymore
-										--unit:SetImmobile(true)
-									if not unit.isResting then
-										unit.TeleportDrain = nil
---									unit.SetImmobile = function() end -- prevent the following function to make the unit moveable again.
-										unit.InitiateTeleportThread = myInitiateTeleportThread
-										if not cdata.restingpos or cdata.restingpos > 20 then
-											cdata.restingpos = 0
-										else
-											cdata.restingpos = cdata.restingpos + 1
-										end
-										
-										if cdata.restingpos>10 then
-											--unit:OnTeleportUnit(unit, {cdata.pos.x-15+cdata.restingpos,0,cdata.pos.y-6},{0,0,0,1})
-										else
-											--unit:OnTeleportUnit(unit, {cdata.pos.x-5+cdata.restingpos,0,cdata.pos.y-4},{0,0,0,1})										
-										end
-										
-										--if cdata.restingpos == 0 then
-										--	unit:SetCustomName("resting - moving next round again") --Citizen of "..cdata.name)
-										--else
-										--	unit:SetCustomName("resting") --Citizen of "..cdata.name)
-										--end
-										--unit.isResting = true;
-									end
+									unit:SetSpeedMult(0.2) -- dont move a lot anymore
+									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
 							end
 							
 							if not presidentIsAlive(cdata) then
-							LOG("President of "..cdata.name.." is dead")
+							LOG("President of "..cdata.name.." is dead, promoting next of kin")
 								setAsPresident(cdata, unit)
 							end
-							
-
 							
 						else
 							-- enemy unit
@@ -1448,15 +1371,21 @@ function checkCountryOwnership()
 				spawnRandomCard(getPlayerByName(cdata.attacker)) -- spawn card for player
 				cdata.owner = cdata.attacker				
 				cdata.factoryOwnershipChanged = true;
+				cdata.factoryOwnershipChangeToBeAnnounced = true;
 				cdata.conqueredThisRound = true;
 
 
 			end
 			
+			-- respawn president unit if no enemies left after battle
 			if friendlyUnits == 0 and enemyUnits == 0 then
-				-- respawn president unit if no enemies left after battle
 				LOG("President of "..cdata.name.." resurrected")
 				setAsPresident(cdata, nil)
+			end
+			
+			-- respawn factory if no longer attacked
+			if not cdata.isAttacked and not cdata.factory then
+				cdata.factoryOwnershipChanged = true
 			end
 			
 			-- update
@@ -1477,7 +1406,6 @@ function checkCountryOwnership()
 			end
 		end
 	end
-
 end
 
 function setFactoryName(country, text)
@@ -1496,30 +1424,14 @@ function respawnFactory(c)
 		c.factory = nil;
 		f:SetCanBeKilled(true)
 		if not f:IsDead() then f:Destroy() end
-		WaitSeconds(1)
 	end
+
 	
-	--WaitSeconds(2)
 	--LOG("SPAWNING FACTORY in "..c.name.." - "..string.format("bool: %t", c.isAttacked))
 	if not c.isAttacked and c.factory == nil then -- only respawn if not being attacked
-		spawnFactory(c)
+		-- prevent double message
 		c.factoryOwnershipChanged = false
-		
-		local liberatorPlayer = getPlayerByName(c.owner)
-		local focusPlayer = players[GetFocusArmy()]
-				
-		local income = computeIncome(liberatorPlayer)
-		if focusPlayer == liberatorPlayer and income then
-			PrintText('You liberated '..c.name..'!',
-					24, 'FFCCFFCC',10,'center')
-			PrintText('Next round you will receive '..income.total..' units.',
-					20, 'FFEEFFEE',10,'center')
-			PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
-					15, 'FFEEFFEE',10,'center')
-		else
-			local liberatorNickname = GetArmyBrain(liberatorPlayer.armyName).Nickname
-			PrintText(c.name..' has been liberated by '..liberatorNickname, 20, 'FFFFCCCC',3,'center')
-		end
+		spawnFactory(c)
 	end
 end
 
@@ -1593,10 +1505,6 @@ function displayRoundBegin()
 	local ileft = maxRoundIdleTime + 2
 	local missionText = player.mission:getText()
 	
-	--PrintText('                                           ', 60,'FF0000FF',ileft,'centertop') -- to move text down
-	--PrintText(missionText, 30, 'FF5050FF',ileft,'centertop') 
-	--PrintText("Round "..roundnum.." - Produce Units and Attack. ", 20, 'FFFFFFFF',ileft,'centertop')
-
 	local objTitle = "Round "..roundnum..' - Reinforce your territories - you can build '..player.acu.SRUnitsToBuild..' units. '
 	if player.build then
 		if player.build.starting then
@@ -1606,11 +1514,6 @@ function displayRoundBegin()
 		end
 	end
 	PrintText(objTitle, 20, 'FFFFFFFF', 9, 'centertop')
-	--end
-
-    --if roundIdleSeconds == 10 then
-	--	PrintText("Round "..roundnum.." - Attack! ", 20, 'FFFFFFFF',ileft - 10,'centertop')
-	--end
 		
 end
 
@@ -1663,8 +1566,9 @@ function computeIncome(player)
 		-- Continent resources
 		build.cont = 0
 		for i,continent in continents do
---			dump(continent.owners)
+			dump(continent.owners)
 			if checkContinentOwn(continent, player) then
+				LOG(player.brain.Nickname.." owns "..continent.name)
 				build.cont = build.cont + continent.ownerBonus
 			end
 		end
@@ -1745,49 +1649,41 @@ function checkPlayerWin(player)
 end
 
 function updateSecondaryMissions()
+
+	local focusPlayer = players[GetFocusArmy()]
+
+	-- Display that a territory was liberated
+	for ci,continent in continents do
+		for i,c in continent.countries do
+			local dead = c.factory == nil or c.factory:IsDead()
+			if c.factoryOwnershipChangeToBeAnnounced then
+				c.factoryOwnershipChangeToBeAnnounced = false
+				
+				local liberatorPlayer = getPlayerByName(c.owner)
+						
+				if focusPlayer == liberatorPlayer then
+					local income = computeIncome(liberatorPlayer)
+					PrintText('You liberated '..c.name..'!',
+							24, 'FFCCFFCC',10,'center')
+					PrintText('Next round you will receive '..income.total..' units.',
+							20, 'FFEEFFEE',10,'center')
+					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
+							15, 'FFEEFFEE',10,'center')
+				else
+					local liberatorNickname = GetArmyBrain(liberatorPlayer.armyName).Nickname
+					PrintText(c.name..' has been liberated by '..liberatorNickname, 20, 'FFFFCCCC',3,'center')
+				end						
+			end
+		end
+	end
+	
+
 	for i, player in players do
 	
 --		LOG(i.." "..player.acu.SRUnitsToBuild)
 
 		if player.index == GetFocusArmy() then
 			-- only do in own sim state, not for others (this doesnt desync!)
-			
-			local objTitle = 'Reinforce your territories - you can place '..player.acu.SRUnitsToBuild..' units. '
-			if player.build then
-				objTitle = objTitle..'('..player.build.total..' this round, '..player.build.ter..' from territories, '..player.build.cont..' from continents, '..player.build.bonus..' from wreckage)'
-			end
-			
-			
-			if player.buildObjective then
-				if player.acu.SRUnitsToBuild == 0 then
-					-- remove objective
---		            ScenarioFramework.Objectives.UpdateObjective( objTitle, 'delete', objTitle, player.buildObjective.Tag)
-					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.buildObjective.Tag)
---					ScenarioFramework.Objectives.DeleteObjective(player.buildObjective, false)
-					player.buildObjective = nil
-				else
-		            ScenarioFramework.Objectives.UpdateObjective( objTitle, 'title', objTitle, player.buildObjective.Tag)
-				end
-			end
-		
-			-- Add secondary objective - use these resources!!
-			if not player.buildObjective and player.acu.SRUnitsToBuild > 0 then
-				-- kill preview
-				if player.previewObjective then
-					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.previewObjective.Tag)
-					player.previewObjective = nil
-				end
-				
-				-- show real
-				player.buildObjective = ScenarioFramework.Objectives.Basic(
-		        '',
-		        'incomplete',
-		        objTitle,
-		        "detail",
-		        ScenarioFramework.Objectives.GetActionIcon("build"),
-		        {Category = categories.uel0106}
-				)
-			end
 			
 			-- warn player if he has still not built his units
 			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 10 or roundIdleSeconds == 20) then
@@ -1804,62 +1700,35 @@ function updateSecondaryMissions()
 --				LOG("We could cash in bonus cards!")
 				-- Add secondary objective - use these resources!!
 				if not player.cardObjective  then
-					local m1 = {{text = '<LOC E01_M01_060_010>[{i EarthCom}]: Reclaim the wreckages at the map bottom for Bonus Units. ', vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
-					ScenarioFramework.Dialogue(m1)		
+					PrintText('Reclaim the wreckages at the map bottom for Bonus Units',
+						20, 'FFCCFFCC',10,'center')
 
-				
-					player.cardObjective = ScenarioFramework.Objectives.Basic(
-			        '',
-			        'incomplete',
-			        'Reclaim the wreckages near your ACU for Bonus Units. Rightclick to zoom in',
-			        "detail",
-			        ScenarioFramework.Objectives.GetActionIcon("reclaim"),
-			        --{Category = categories.uel0001, Units = {player.acu}}
-			        {Units = {player.acu}}
-					)
+					player.cardObjective = true
 				end
 			else
-				if player.cardObjective then
-					-- remove objective
-					ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.cardObjective.Tag)
-					player.cardObjective = nil
+				-- reset objective
+				if player.cardObjective and player.nextRoundBonusProfit then
+					local income = computeIncome(player)
+
+					PrintText('You reclaimed wreckage!',
+						24, 'FFCCFFCC',10,'center')
+					PrintText('Next round you will receive '..income.total..' units.',
+						20, 'FFEEFFEE',10,'center')
+					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
+						15, 'FFEEFFEE',10,'center')
+
+					player.cardObjective = false
 				end
 			end
 			
 			--- show a Liberate a country mission
 			if player.bonusCardSpawned and player.fightObjective then
-				ScenarioFramework.Objectives.UpdateObjective( objTitle, 'complete', "complete", player.fightObjective.Tag)
-				player.fightObjective = nil
+				player.fightObjective = false
 			end
 			if player.acu.SRUnitsToBuild == 0 and not player.bonusCardSpawned and not player.fightObjective then
-					player.fightObjective = ScenarioFramework.Objectives.Basic(
-			        '',
-			        'incomplete',
-			        'Liberate a territory of your choice to receive bonus wreckage',
-			        "detail",
-			        ScenarioFramework.Objectives.GetActionIcon("kill"),
-			        {Category = categories.ueb0301}
-					)
+				PrintText('Liberate a territory of your choice to receive bonus wreckage',20,'FFFFFFFF',5,'center') 
+				player.fightObjective = true
 			end
-			
-			if player.acu.SRUnitsToBuild == 0 and not player.previewObjective then
-				player.previewObjective = ScenarioFramework.Objectives.Basic(
-			        '',
-			        'incomplete',
-					'',
-			        "detail",
-			        ScenarioFramework.Objectives.GetActionIcon("build"),
-			        {Category = categories.ueb0301}
-					)
-			end
-			if player.acu.SRUnitsToBuild == 0 and player.previewObjective then
-				-- update
-				local b = computeIncome(player)
-				local ptitle = 'Next Round (begins after noone attacks or builds for '..maxRoundIdleTime..' seconds) you can build '..b.total..
-				' units ('..b.ter..' from territories, '..b.cont..' from continents, '..b.bonus..' from wreckage)'
-		        ScenarioFramework.Objectives.UpdateObjective( ptitle, 'title', ptitle, player.previewObjective.Tag)
-			end
-
 		end
 	end
 end
