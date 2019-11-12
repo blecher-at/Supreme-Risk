@@ -265,6 +265,10 @@ function OnPopulate()
 	ScenarioInfo.Options.PrebuiltUnits = nil
 	ScenarioInfo.Options.Victory = 'sandbox'
 
+	if ScenarioInfo.Options.SRRoundLength then
+		maxRoundIdleTime = ScenarioInfo.Options.SRRoundLength
+	end
+
 	InitializeSupremeRiskArmies()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
@@ -361,8 +365,11 @@ function onSRProduceUnit(acu, unitBeingBuilt)
 end
 
 function onSRAddUnitResources(acu, un)
---	acu.SRUnitsToBuild = acu.SRUnitsToBuild + un
-	acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
+	if ScenarioInfo.Options.SRBuildMode == "expire" then
+		acu.SRUnitsToBuild = un -- max units to build is reset on each round, to prevent saving them up ,,,
+	else
+		acu.SRUnitsToBuild = acu.SRUnitsToBuild + un -- units are kept to next rounds
+	end
 	
 	if not acu:IsDead() then
 		setPlayerRestrictions(acu.index, acu.SRUnitsToBuild)
@@ -517,8 +524,8 @@ function initPlayers()
 		local tblData = Scenario.Armies[name]
 		dump(tblData)
 		
-		-- spawn ARMY_9 as 3rd player if only two players are in the game
-		if tblData.SRInit or i == 3 and not tblData.SRInit then
+		-- spawn ARMY_6, 7 as 3rd player if only two players are in the game
+		if tblData.SRInit or ((i == 2 or i == 3) and not tblData.SRInit) then
 			--armies[name] = i
 			
 			local army = i;
@@ -1297,7 +1304,7 @@ function checkCountryOwnership()
 							weapon:SetFiringRandomness(1.2)
 						
 							-- HOME BASES (Have units stay there for a while, and only move one territory per round), init at the beginning of the round
-							if not unit.homebase or roundTotalTime == 0 or cdata.conqueredThisRound then
+							if not unit.homebase or roundTotalTime == 0 or (cdata.conqueredThisRound and ScenarioInfo.Options.SRUnitMovement == 'agro') then
 								unit.homebase = cdata
 							end
 							
@@ -1305,7 +1312,7 @@ function checkCountryOwnership()
 							
 							
 								-- Code for "resting". units are not allowed to traverse territories they came from or did not liberate in this round
-								if unit.homebase == cdata then
+								if unit.homebase == cdata or ScenarioInfo.Options.SRUnitMovement == 'free' then
 									unit:SetCustomName("Citizen of "..cdata.name)
 									unit.isResting = false;
 									unit:SetImmobile(false)
