@@ -20,7 +20,7 @@ ScenarioInfo = {
                 },
             },
             customprops = {
-                ['ExtraArmies'] = STRING( 'ARMY_7' ),
+                ['ExtraArmies'] = STRING( 'ARMY_7', 'ARMY_8' ),
             },
         },
     },
