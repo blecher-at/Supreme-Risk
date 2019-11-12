@@ -5,7 +5,7 @@
 Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Alliance Forever, enabling rules from the board game "RISK"
 
 ![Supreme Risk Screenshot](promo/Risk%20Screenshots/Board4-1.png)
-![Supreme Risk Screenshot](promo/Risk%20Screenshots/Board3.png)
+![Supreme Risk Screenshot](promo/Risk%20Screenshots/Board5.png)
 
 ## History
 
@@ -24,6 +24,11 @@ I first wrote this Map back in 2007, and recently picked it up again to make it 
 - Building units will restart the round timer
 - Players have 30 seconds to liberate neighbouring countries
 - Standard Risk rules apply when determining victories, and new units to be placed
+
+- Options available in the game settings
+-- Choose tier of units to use (T1, T2, T3)
+-- Lose or retain reinforcements
+-- unit movement settings
 
 ## Files
 
