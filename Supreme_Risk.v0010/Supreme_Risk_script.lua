@@ -892,27 +892,15 @@ function spawnFactory(cdata)
 
 	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
 		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
-		--factory:xxxx()
 		--onRoundAction()
 
-		--dump(unitbp)
-		
-		-- prevent duplicate spawn (multithreading in game code)
-		if unitBeingBuilt.spawned then
-			return 
-		end
-		
-		unitBeingBuilt.spawned = true
 		local count = unitBeingBuilt.riskBuildCount
 		unitBeingBuilt:Destroy()
 		
 		for i=1, count do 
 			local spot = findFreeUnitSpot(country)
 			
-			--local x = country.pos.x-5 + country.friendlyUnits * 1
-			--local y = country.pos.y+5 -- + (country.friendlyUnits / 10) * 1
 			unit = CreateUnitHPR(units.primary, country.owner, spot.x,0,spot.y, 0,0,0)
-			--unit.isInitialPresident = true;
 			initUnit(unit)	
 			country.friendlyUnits = country.friendlyUnits + 1
 		end
