@@ -1044,11 +1044,9 @@ function setAsPresident(country, unit)
 		unit:Destroy()
 	end
 	
-	--if not unit then
-		unit = CreateUnitHPR(units.primary, country.owner, x,0,y, 0,0,0)
-		unit.isInitialPresident = true;
-		initUnit(unit)		
-	--end
+	unit = CreateUnitHPR(units.primary, country.owner, x,0,y, 0,0,0)
+	unit.isInitialPresident = true;
+	initUnit(unit)		
 
 	-- only alive units can be elected president
 	if not unit:IsBeingBuilt() and not unit:IsDead() then
