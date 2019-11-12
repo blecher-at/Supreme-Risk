@@ -246,10 +246,10 @@ local cardTypes = {
 }	
   
 local unitTiers = {
-	t1 = { factory = 'ueb0101', primary = 'uel0106', secondary ='uel0201', tertiary = 'uel0103'},
-	t2 = { factory = 'xsb0201', primary = 'xsl0202', secondary ='xsl0203', tertiary = 'xsl0204'},
-	t3 = { primary = 'xrl0305', secondary ='uel0201', tertiary = 'url0304'},
-	t4 = { primary =  'ual0401', secondary ='uel0201', tertiary = 'uel0103'},
+	t1 = { factory = 'ueb0101', primary = 'uel0106', secondary ='uel0201', tertiary = 'uel0103', spacing = 1, health = 1},
+	t2 = { factory = 'xsb0201', primary = 'xsl0202', secondary ='xsl0203', tertiary = 'xsl0205', spacing = 1.5, health = 25},
+	t3 = { factory = 'urb0301', primary = 'url0303', secondary ='xrl0305', tertiary = 'url0304', spacing = 1.5, health = 50},
+	--t4 = { primary =  'ual0401', secondary ='uel0201', tertiary = 'uel0103'},
 }
 
 local units = unitTiers.t1
@@ -277,9 +277,9 @@ function OnPopulate()
 	end
 
 	-- fixme: building too slow for >t1
-	--if ScenarioInfo.Options.SRUnitTier then
-	--	units = unitTiers[ScenarioInfo.Options.SRUnitTier]
-	--end
+	if ScenarioInfo.Options.SRUnitTier then
+		units = unitTiers[ScenarioInfo.Options.SRUnitTier]
+	end
 	
 	if not ScenarioInfo.Options.SRUnitMovement then
 		ScenarioInfo.Options.SRUnitMovement = "agro"
@@ -880,7 +880,7 @@ function spawnFactory(cdata)
 	u:SetRegenRate(1)
 	u:SetIntelRadius('Vision', meter(baseSizeMeters*7))
 
-	u:SetBuildRate(1000)
+	u:SetBuildRate(10000)
 	--u:SetBuildTimeMultiplier(0.001)
 	u:SetCustomName(name)
 	u:SetConsumptionPerSecondMass(0)
@@ -940,14 +940,14 @@ end
 
 function findFreeUnitSpot(country)
 	local foundPos = {}
-	local initialx = country.pos.x - 4.5;
+	local maxWidth = 12
+	local spacing = units.spacing
+	local initialx = country.pos.x - (maxWidth -1 ) / 2
 	foundPos.x = initialx;
 	foundPos.y = country.pos.y + 5;
-	local maxWidth = 10
 	local step = 1
-	
 	while true do
-		local units = GetUnitsInRect(Rect(foundPos.x, foundPos.y, foundPos.x + 1, foundPos.y + 1))
+		local units = GetUnitsInRect(Rect(foundPos.x, foundPos.y, foundPos.x + spacing, foundPos.y + spacing))
 		
 		if not units then
 			return foundPos
@@ -959,16 +959,16 @@ function findFreeUnitSpot(country)
 				local dx = unitpos[1] - foundPos.x
 				local dy = unitpos[3] - foundPos.y
 				--LOG("XXX "..dx.." "..dy)
-				if (dx < 1 and dx > -1) and (dy < 1 and dy > -1) then 
-					unitsfound = unitsfound + 1
+				if (dx < spacing and dx > -spacing) and (dy < spacing and dy > -spacing) then 
+					unitsfound = unitsfound + spacing
 				end
 			end
 			
 			if unitsfound > 0 then
-				foundPos.x = foundPos.x + step
+				foundPos.x = foundPos.x + spacing
 				if foundPos.x - initialx >= maxWidth then
 					foundPos.x = initialx
-					foundPos.y = foundPos.y + step
+					foundPos.y = foundPos.y + spacing
 				end
 			else 
 				return foundPos
@@ -1277,16 +1277,16 @@ function checkCountryOwnership()
 					y1 = cdata.pos.y + meter(baseSizeMeters)*baseSizeInner
 					}
 					
-			local units = GetUnitsInRect(rect)
+			local unitsrect = GetUnitsInRect(rect)
 			local currentOwnerIndex = getPlayerByName(cdata.owner).index
 			
 			local armycounters = {}
-			if units then
-				for index,unit in units do
+			if unitsrect then
+				for index,unit in unitsrect do
 					if not unit:IsDead() and not unit:IsBeingBuilt() and unit:GetWeaponCount() > 0 then
 					
 						local weapon = unit:GetWeapon(1)
-						local h = 1
+						local h = units.health
 						unit:SetMaxHealth(h)
 						unit:SetHealth(nil, h)
 						--	LOG(unit:GetBlueprint())
