@@ -550,7 +550,6 @@ function initPlayers()
 			player.armyName = getArmyName(player.acu)
 			players[army] = player;
 			LOG("found ACU "..i.." - "..player.armyName)
-
 			-- resource stuff
 			player.acu.SRProduceUnit = onSRProduceUnit
 			player.acu.SRAddUnitResources = onSRAddUnitResources
@@ -569,6 +568,8 @@ function initPlayers()
 
 			--brain
 			player.brain = GetArmyBrain(player.armyName)
+			player.nickName = player.brain.Nickname
+			
 			player.brain.player = player -- callback ( useful for coding an AI later)
 			player.brain.CalculateScore = function(self)
 				return player.empireSize
@@ -650,15 +651,8 @@ function initMissions()
 					end
 				end
 			end
-			
-			local nn = GetArmyBrain(player.armyName).Nickname
---DEUBG		LOG(nn..": "..player.mission:getText())
 		end
 	end
---	        player.objective = GetArmyBrain(player.armyName).Nickname..": Objective"
-	--	LOG("Faction: "..GetFaction(player).SoundPrefix)
-	
-
 end
 
 function addMissionContinent(cc)
@@ -769,7 +763,7 @@ function addMissionKill(player)
 			end
 		end,
 		getText = function(self)
-			return "Eliminate "..GetArmyBrain(self.target.armyName).Nickname
+			return "Eliminate "..self.target.nickName
 		end
 		
 	}
@@ -863,13 +857,6 @@ function spawnFactory(cdata)
 	u:SetIntelRadius('Vision', meter(baseSizeMeters*7))
 	u:SetCustomName(name)
 	cdata.factory = u
---	cdata.ownerId = armyId
-
-	--u.OnStopBuild = function(factory, unit) 
-	--	onRoundAction()
-	--	initUnit(unit)
-	--	Warp(unit, {x+0,0,y+5},{0,0,0,1})
-	--end
 
 	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
 		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
@@ -948,8 +935,10 @@ function findFreeUnitSpot(country)
 			local unitsfound = 0
 			for i, unit in units do
 				local unitpos = unit:GetPosition()
+				local dx = abs(unitpos[1] - foundPos.x)
+				local dy = abs(unitpos[3] - foundPos.y)
 --				if (abs(unitpos[1] - foundPos.x) <= 1 and abs(unitpos[3] - foundPos.y) <= 1) then 
-				if unitpos[1] == foundPos.x and unitpos[3] == foundPos.y then 
+				if dx <= 1 and dy <= 1 then 
 					unitsfound = unitsfound + 1
 				end
 			end
@@ -1367,6 +1356,7 @@ function checkCountryOwnership()
 				end
 				cdata.isAttacked = true
 				cdata.attacker = enemyArmy
+				cdata.defender = cdata.owner
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
 				cdata.isAttacked = false
@@ -1376,6 +1366,7 @@ function checkCountryOwnership()
 				LOG(cdata.name.." liberated by "..cdata.attacker)
 				
 				spawnRandomCard(getPlayerByName(cdata.attacker)) -- spawn card for player
+				cdata.previousOwner = cdata.owner
 				cdata.owner = cdata.attacker				
 				cdata.factoryOwnershipChanged = true;
 				cdata.factoryOwnershipChangeToBeAnnounced = true;
@@ -1667,6 +1658,7 @@ function updateSecondaryMissions()
 				c.factoryOwnershipChangeToBeAnnounced = false
 				
 				local liberatorPlayer = getPlayerByName(c.owner)
+				local lostPlayer = getPlayerByName(c.previousOwner)
 						
 				if focusPlayer == liberatorPlayer then
 					local income = computeIncome(liberatorPlayer)
@@ -1676,9 +1668,16 @@ function updateSecondaryMissions()
 							20, 'FFEEFFEE',10,'center')
 					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
 							15, 'FFEEFFEE',10,'center')
+				else if focusPlayer == lostPlayer then
+					local income = computeIncome(liberatorPlayer)
+					PrintText('You lost '..c.name..' to '..liberatorPlayer.nickName,
+							24, 'FFFFAAAA',10,'center')
+					PrintText('Next round you will receive '..income.total..' units.',
+							20, 'FFEEFFEE',10,'center')
+					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
+							15, 'FFEEFFEE',10,'center')				
 				else
-					local liberatorNickname = GetArmyBrain(liberatorPlayer.armyName).Nickname
-					PrintText(c.name..' has been liberated by '..liberatorNickname, 20, 'FFFFCCCC',3,'center')
+					PrintText(c.name..' has been liberated by '..liberatorPlayer.nickName, 20, 'FFFFFFCC',3,'center')
 				end						
 			end
 		end
