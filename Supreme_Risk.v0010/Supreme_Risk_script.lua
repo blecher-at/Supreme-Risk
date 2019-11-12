@@ -12,16 +12,14 @@ END
 --
 -- A Supreme Commander Modification
 -- Map and Scripting 
--- (C) 2007 Stephan Blecher (stephan@blecher.at)
+-- (C) 2007-2020 Stephan Blecher (stephan@blecher.at)
+-- https://github.com/blecher-at/Supreme-Risk
 --
--- Use at your own risk and have lots of fun!
+-- Use at your own RISK and have lots of fun!
 -- Version 10
 --
 -------------------------------------------------------------
 
-
-
---         local dis=VDist3(location, unit:GetPosition()) 
 
 local ScenarioUtils = import('/lua/sim/ScenarioUtilities.lua')
 local ScenarioFramework = import('/lua/ScenarioFramework.lua')
@@ -247,10 +245,17 @@ local cardTypes = {
 	{unit = 'uel0304', profit = 8},
 }	
   
+local unitTiers = {
+	t1 = { factory = 'ueb0101', primary = 'uel0106', secondary ='uel0201', tertiary = 'uel0103'},
+	t2 = { factory = 'xsb0201', primary = 'xsl0202', secondary ='xsl0203', tertiary = 'xsl0204'},
+	t3 = { primary = 'xrl0305', secondary ='uel0201', tertiary = 'url0304'},
+	t4 = { primary =  'ual0401', secondary ='uel0201', tertiary = 'uel0103'},
+}
+
+local units = unitTiers.t1
+	
 local missions = {}
 
-
-  
   
 local player = nil;
 
@@ -259,7 +264,9 @@ function OnPopulate()
 
 	-- spawn Trees
 --	spawnTrees()
-	
+		LOG("OPTIONS")
+	dump(ScenarioInfo.Options)
+
 	
 	-- prevent ACU warpin animation
 	ScenarioInfo.Options.PrebuiltUnits = nil
@@ -269,6 +276,20 @@ function OnPopulate()
 		maxRoundIdleTime = ScenarioInfo.Options.SRRoundLength
 	end
 
+	-- fixme: building too slow for >t1
+	--if ScenarioInfo.Options.SRUnitTier then
+	--	units = unitTiers[ScenarioInfo.Options.SRUnitTier]
+	--end
+	
+	if not ScenarioInfo.Options.SRUnitMovement then
+		ScenarioInfo.Options.SRUnitMovement = "agro"
+	end
+	
+	if not ScenarioInfo.Options.SRBuildMode then
+		ScenarioInfo.Options.SRBuildMode = "expire"
+	end
+	
+
 	InitializeSupremeRiskArmies()
 
 	ScenarioFramework.SetPlayableArea('AREA_1' , false)
@@ -276,6 +297,8 @@ function OnPopulate()
 	--zoomOut()
 	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
 
+	LOG("OPTIONS")
+	dump(ScenarioInfo.Options)
 	LOG("ONPOPULATE END")
 end
 
@@ -410,18 +433,19 @@ end
 
 function setPlayerRestrictions( index, SRUnitsToBuild) 
 		
+		dump(categories)
 		--Building Restrictions
 		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
-		ScenarioFramework.RemoveRestriction(index, categories.uel0106) -- mech marine
+		ScenarioFramework.RemoveRestriction(index, categories[units.primary]) -- mech marine
 		
 		-- striker 
-		if SRUnitsToBuild >= 5 then ScenarioFramework.RemoveRestriction(index, categories.uel0201) end
+		if SRUnitsToBuild >= 5 then ScenarioFramework.RemoveRestriction(index, categories[units.secondary]) end
 		
 		-- lobo
-		if SRUnitsToBuild >= 10 then ScenarioFramework.RemoveRestriction(index, categories.uel0103) end
+		if SRUnitsToBuild >= 10 then ScenarioFramework.RemoveRestriction(index, categories[units.tertiary]) end
 		--ScenarioFramework.RemoveRestriction(index, categories.ual0106)
 		--ScenarioFramework.RemoveRestriction(index, categories.url0106)
-		ScenarioFramework.RemoveRestriction(index, categories.ueb0301) -- factory
+		ScenarioFramework.RemoveRestriction(index, categories[units.factory]) -- factory
 end
 
 function getArmyByName(name)
@@ -473,7 +497,7 @@ function initStartUnits()
 			if cdata.startUnits then
 				local ii = 0
 				while ii < cdata.startUnits do
-					local unit = CreateUnitHPR('uel0106', cdata.owner, cdata.pos.x-2,cdata.pos.y+10,cdata.pos.y+yoffset, 0,0,0)
+					local unit = CreateUnitHPR(units.primary, cdata.owner, cdata.pos.x-2,cdata.pos.y+10,cdata.pos.y+yoffset, 0,0,0)
 					initUnit(unit)
 
 					ii = ii+1
@@ -598,7 +622,7 @@ function onPlayerDefeat(brain)
 		continent.owners = {};
 		for i,cdata in continent.countries do		
 			if cdata.factory and cdata.owner == brain.player.armyName and not cdata.factory.onAI then
-				IssueBuildFactory({cdata.factory}, "uel0106",9999)
+				IssueBuildFactory({cdata.factory}, units.primary, 9999)
 				cdata.factory.onAI = true
 			end
 		end
@@ -832,7 +856,7 @@ function spawnFactory(cdata)
 	local y = cdata.pos.y
 	local name = cdata.name
 	local army = cdata.owner
-	local name = 'ueb0301'
+	local name = units.factory
 	local country = cdata
 	
 --	if GetArmyBrain(cdata.owner):GetFactionIndex() == 2 then
@@ -855,15 +879,30 @@ function spawnFactory(cdata)
 	u:SetHealth(nil,10000)
 	u:SetRegenRate(1)
 	u:SetIntelRadius('Vision', meter(baseSizeMeters*7))
+
+	u:SetBuildRate(1000)
+	--u:SetBuildTimeMultiplier(0.001)
 	u:SetCustomName(name)
+	u:SetConsumptionPerSecondMass(0)
+	u.SetConsumptionPerSecondMass = function() end
+	u:SetConsumptionPerSecondEnergy(1)
+	u.SetConsumptionPerSecondEnergy = function() end
+
 	cdata.factory = u
 
 	u:AddOnUnitBuiltCallback(function (factory, unitBeingBuilt) 
 		LOG("Unit has been Built in "..cdata.name..": "..unitBeingBuilt:GetEntityId().." owner: "..country.owner)
-		
+		--factory:xxxx()
 		--onRoundAction()
 
 		--dump(unitbp)
+		
+		-- prevent duplicate spawn (multithreading in game code)
+		if unitBeingBuilt.spawned then
+			return 
+		end
+		
+		unitBeingBuilt.spawned = true
 		local count = unitBeingBuilt.riskBuildCount
 		unitBeingBuilt:Destroy()
 		
@@ -872,7 +911,7 @@ function spawnFactory(cdata)
 			
 			--local x = country.pos.x-5 + country.friendlyUnits * 1
 			--local y = country.pos.y+5 -- + (country.friendlyUnits / 10) * 1
-			unit = CreateUnitHPR('uel0106', country.owner, spot.x,0,spot.y, 0,0,0)
+			unit = CreateUnitHPR(units.primary, country.owner, spot.x,0,spot.y, 0,0,0)
 			--unit.isInitialPresident = true;
 			initUnit(unit)	
 			country.friendlyUnits = country.friendlyUnits + 1
@@ -887,17 +926,16 @@ function spawnFactory(cdata)
 
 	u.OnStartBuildOriginal = u.OnStartBuild
 	u.OnStartBuild = function(self, unitBeingBuilt, order)
---		dump(unitBeingBuilt)
-		
+		--dump(order)
+		unitBeingBuilt:SetBuildRate(10)
+		unitBeingBuilt:SetBuildRateOverride(10)
 		local player = players[self:GetArmy()]
-		
-		local count = 1;
 		local unitbp = unitBeingBuilt:GetBlueprint()
-		local unitid = unitbp.BlueprintId;
-		
-		unitBeingBuilt.riskBuildCount = 1;
-		if unitid == 'uel0201' then unitBeingBuilt.riskBuildCount = 5 end
-		if unitid == 'uel0103' then unitBeingBuilt.riskBuildCount = 10 end
+		local unitid = unitbp.BlueprintId
+
+		unitBeingBuilt.riskBuildCount = 1
+		if unitid == units.secondary then unitBeingBuilt.riskBuildCount = 5 end
+		if unitid == units.tertiary then unitBeingBuilt.riskBuildCount = 10 end
 
 		if player.acu:SRProduceUnit(unitBeingBuilt) then 
 			LOG(self:GetArmy().." start building ")
@@ -910,11 +948,6 @@ function spawnFactory(cdata)
 		
 		
 	end
-		
-	u:SetBuildTimeMultiplier(0.01)
-	u:SetConsumptionPerSecondMass(0)
-	u.SetConsumptionPerSecondMass = function() end
-	
 end
 
 function findFreeUnitSpot(country)
@@ -935,10 +968,10 @@ function findFreeUnitSpot(country)
 			local unitsfound = 0
 			for i, unit in units do
 				local unitpos = unit:GetPosition()
-				local dx = abs(unitpos[1] - foundPos.x)
-				local dy = abs(unitpos[3] - foundPos.y)
---				if (abs(unitpos[1] - foundPos.x) <= 1 and abs(unitpos[3] - foundPos.y) <= 1) then 
-				if dx <= 1 and dy <= 1 then 
+				local dx = unitpos[1] - foundPos.x
+				local dy = unitpos[3] - foundPos.y
+				--LOG("XXX "..dx.." "..dy)
+				if (dx < 1 and dx > -1) and (dy < 1 and dy > -1) then 
 					unitsfound = unitsfound + 1
 				end
 			end
@@ -1024,7 +1057,7 @@ function setAsPresident(country, unit)
 	end
 	
 	--if not unit then
-		unit = CreateUnitHPR('uel0106', country.owner, x,0,y, 0,0,0)
+		unit = CreateUnitHPR(units.primary, country.owner, x,0,y, 0,0,0)
 		unit.isInitialPresident = true;
 		initUnit(unit)		
 	--end
@@ -1284,7 +1317,7 @@ function checkCountryOwnership()
 							-- own or allied unit
 							unit:SetSpeedMult(1.75) -- reset for successful liberators
 							unit:SetAccMult(1.75)
-							unit:SetTurnMult(1)
+							unit:SetTurnMult(2)
 							
 							weapon:ChangeRateOfFire(2)
 --						weapon:SetTurretYawSpeed(300)
@@ -1293,7 +1326,7 @@ function checkCountryOwnership()
 							weapon:SetFiringRandomness(1.2)
 						
 							-- HOME BASES (Have units stay there for a while, and only move one territory per round), init at the beginning of the round
-							if not unit.homebase or roundTotalTime == 0 or (cdata.conqueredThisRound and ScenarioInfo.Options.SRUnitMovement == 'agro') then
+							if not unit.homebase or roundTotalTime == 0 or (cdata.conqueredThisRound and ScenarioInfo.Options.SRUnitMovement == "agro") then
 								unit.homebase = cdata
 							end
 							
@@ -1308,6 +1341,7 @@ function checkCountryOwnership()
 								else
 	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
 									unit:SetSpeedMult(0.2) -- dont move a lot anymore
+									LOG("RESTING -- "..ScenarioInfo.Options.SRUnitMovement)
 									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
 							end
@@ -1564,7 +1598,6 @@ function computeIncome(player)
 		-- Continent resources
 		build.cont = 0
 		for i,continent in continents do
-			dump(continent.owners)
 			if checkContinentOwn(continent, player) then
 				LOG(player.brain.Nickname.." owns "..continent.name)
 				build.cont = build.cont + continent.ownerBonus
@@ -1668,17 +1701,19 @@ function updateSecondaryMissions()
 							20, 'FFEEFFEE',10,'center')
 					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
 							15, 'FFEEFFEE',10,'center')
-				else if focusPlayer == lostPlayer then
-					local income = computeIncome(liberatorPlayer)
-					PrintText('You lost '..c.name..' to '..liberatorPlayer.nickName,
-							24, 'FFFFAAAA',10,'center')
-					PrintText('Next round you will receive '..income.total..' units.',
-							20, 'FFEEFFEE',10,'center')
-					PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
-							15, 'FFEEFFEE',10,'center')				
-				else
-					PrintText(c.name..' has been liberated by '..liberatorPlayer.nickName, 20, 'FFFFFFCC',3,'center')
-				end						
+				else 
+					if focusPlayer == lostPlayer then
+						local income = computeIncome(liberatorPlayer)
+						PrintText('You lost '..c.name..' to '..liberatorPlayer.nickName,
+								24, 'FFFFAAAA',10,'center')
+						PrintText('Next round you will receive '..income.total..' units.',
+								20, 'FFEEFFEE',10,'center')
+						PrintText('('..income.ter..' from territories, '..income.cont..' from continents, '..income.bonus..' from wreckage)',
+								15, 'FFEEFFEE',10,'center')				
+					else
+						PrintText(c.name..' has been liberated by '..liberatorPlayer.nickName, 20, 'FFFFFFCC',3,'center')
+					end
+				end
 			end
 		end
 	end

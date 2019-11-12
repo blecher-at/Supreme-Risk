@@ -34,6 +34,35 @@ options = {
        },
     },
     {
+		default = 1,
+        label = "Supreme Risk: Unit Tier",
+        help = "",
+        key = "SRUnitTier",
+        pref = "SRUnitTier",
+        values = {
+			{
+              text = "Tier 1",
+				help = "Mech Marines",
+				key = "t1",
+			},
+			{
+              text = "Tier 2",
+				help = "Ilshavohs",
+              key = "t2",
+			},
+			{
+              text = "Tier 3",
+			  help = "Bricks",
+              key = "t3",
+			},
+			--[[{
+              text = "Experimentals",
+			  help = "Galactic Collosi",
+              key = "t4",
+			},]]--
+       },
+    },
+    {
 		default = 2,
         label = "Supreme Risk: Unit Movement",
         help = "",
