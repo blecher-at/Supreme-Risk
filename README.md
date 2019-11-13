@@ -13,16 +13,19 @@ I first wrote this Map back in 2007, and recently picked it up again to make it 
 
 ## How to Play
 ### Getting Started 
+
 * Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
-* You need a valid license of "Supreme Commander: Forged Alliance" (from steam of other sources)
+* You need a valid license of "Supreme Commander: Forged Alliance" (from steam or other sources)
 * Once in the client, go to "Vault" and search for "Supreme Risk". 
 * Click "Install" then "Create Game"
 
-### Manual Installation (version from github only)
+### Manual Installation
 
-* Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
-* You need a valid license of "Supreme Commander: Forged Alliance" (from steam of other sources)
-* Copy the folder Supreme_Risk.v0010 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\Supreme_Risk.v0010
+this should not be needed for players, I update the version in the vault regularly
+If you make changes to the map, however: 
+
+* Install FA (see above)
+* Copy the folder Supreme_Risk.v0010 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\
 
 ### Gameplay
 
