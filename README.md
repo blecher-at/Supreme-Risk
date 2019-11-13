@@ -12,7 +12,13 @@ Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Allianc
 I first wrote this Map back in 2007, and recently picked it up again to make it compatible with modern FA.
 
 ## How to Play
-### Manual Installation
+### Getting Started 
+* Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
+* You need a valid license of "Supreme Commander: Forged Alliance" (from steam of other sources)
+* Once in the client, go to "Vault" and search for "Supreme Risk". 
+* Click "Install" then "Create Game"
+
+### Manual Installation (version from github only)
 
 * Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
 * You need a valid license of "Supreme Commander: Forged Alliance" (from steam of other sources)
