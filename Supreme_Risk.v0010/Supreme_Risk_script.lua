@@ -325,9 +325,13 @@ function InitializeSupremeRiskArmies()
             --    GetArmyBrain(strArmy):InitializeSkirmishSystems()
             --end
 
-            --if strArmy = 'ARMY_7' then -- give enemy civilians darker color
-            --    SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
-            --end
+			-- give enemy civilians colors
+            if strArmy == 'ARMY_7' then 
+                SetArmyColor(strArmy, 255, 48, 48) -- dark red
+            end
+            if strArmy == 'ARMY_8' then 
+                SetArmyColor(strArmy, 255, 255, 48) -- yellow
+            end
 
             ----[ irumsey                                                         ]--
             ----[ Temporary defaults.  Make sure some fighting will break out.    ]--
@@ -547,8 +551,8 @@ function initPlayers()
 		local tblData = Scenario.Armies[name]
 		dump(tblData)
 		
-		-- spawn ARMY_6, 7 as 3rd player if only two players are in the game
-		if tblData.SRInit or ((i == 2 or i == 3) and not tblData.SRInit) then
+		-- spawn ARMY_7, 8 as 3rd player if only one or two players are in the game
+		if tblData.personality == 'SRPlayer' or ((i == 2 or i == 3) and tblData.personality != 'SRPlayer') then
 			--armies[name] = i
 			
 			local army = i;

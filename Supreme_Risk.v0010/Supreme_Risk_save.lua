@@ -30,42 +30,42 @@ Scenario = {
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 571.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 571.5, 5.062809, 930.5 ),
                 },
                 ['ARMY_2'] = {
                     ['color'] = STRING( 'ff800080' ),
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 460.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 460.5, 5.062809, 930.5 ),
                 },
                 ['ARMY_1'] = {
                     ['color'] = STRING( 'ff800080' ),
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 97.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 97.5, 5.062809, 930.5 ),
                 },
                 ['ARMY_3'] = {
                     ['color'] = STRING( 'ff800080' ),
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 196.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 196.5, 5.062809, 930.5 ),
                 },
                 ['ARMY_5'] = {
                     ['color'] = STRING( 'ff800080' ),
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 713.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 713.5, 5.062809, 930.5 ),
                 },
                 ['ARMY_6'] = {
                     ['color'] = STRING( 'ff800080' ),
                     ['type'] = STRING( 'Blank Marker' ),
                     ['prop'] = STRING( '/env/common/props/markers/M_Blank_prop.bp' ),
                     ['orientation'] = VECTOR3( 0, 0, 0 ),
-                    ['position'] = VECTOR3( 837.5, 5.06, 930.5 ),
+                    ['position'] = VECTOR3( 837.5, 5.062809, 930.5 ),
                 },
             },
         },
@@ -96,8 +96,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_1'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -130,8 +129,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_2'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -164,8 +162,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_3'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -198,8 +195,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_4'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -232,8 +228,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_5'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -266,8 +261,7 @@ Scenario = {
         --[[                                                                           ]]--
         ['ARMY_6'] = 
         {
-			SRInit = true,
-            personality = '',
+            personality = 'SRPlayer',
             plans = '',
             color = 0,
             faction = 0,
@@ -295,5 +289,59 @@ Scenario = {
                 },
             },
         },
-	},
+        --[[                                                                           ]]--
+        --[[  ARMY_7                                                                   ]]--
+        --[[                                                                           ]]--
+        ['ARMY_7'] = 
+        {
+            personality = '',
+            plans = '',
+            color = 17,
+            faction = 0,
+            Economy = {
+                mass = 0,
+                energy = 0,
+            },
+            Alliances = {
+            },
+            ['Units'] = GROUP {
+                orders = '',
+                platoon = '',
+                Units = {
+                },
+            },
+            PlatoonBuilders = {
+                next_platoon_builder_id = '1',
+                Builders = {
+                },
+            },
+        },
+        --[[                                                                           ]]--
+        --[[  ARMY_8                                                                   ]]--
+        --[[                                                                           ]]--
+        ['ARMY_8'] = 
+        {
+            personality = '',
+            plans = '',
+            color = 18,
+            faction = 0,
+            Economy = {
+                mass = 0,
+                energy = 0,
+            },
+            Alliances = {
+            },
+            ['Units'] = GROUP {
+                orders = '',
+                platoon = '',
+                Units = {
+                },
+            },
+            PlatoonBuilders = {
+                next_platoon_builder_id = '1',
+                Builders = {
+                },
+            },
+        },
+    },
 }
