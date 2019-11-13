@@ -36,11 +36,11 @@ local executing = false
 local baseSizeMeters = 400;
 local roundIdleSeconds = 0; -- this round is idle for n seconds now
 local maxRoundIdleTime = 45; -- number of seconds from last round action to begin next round
-local idleWarnMin = maxRoundIdleTime / 2; -- warn n seconds before end of round
+local idleWarnMin = maxRoundIdleTime / 4; -- warn n seconds before end of round
 local idleWarnMax = maxRoundIdleTime - 2; -- warn n seconds before end of round
 local roundnum = 1;
 local roundTotalTime = 0;
-
+local SRGameRunning = true; -- set to false on win
 local players = {};
 
     function basicSerialize (o)
@@ -265,7 +265,7 @@ function OnPopulate()
 	-- spawn Trees
 --	spawnTrees()
 		LOG("OPTIONS")
-	dump(ScenarioInfo.Options)
+	--dump(ScenarioInfo.Options)
 
 	
 	-- prevent ACU warpin animation
@@ -298,7 +298,6 @@ function OnPopulate()
 	for a, ccc in ScenarioUtils.AreaToRect('AREA_1') do LOG(a.." "..ccc) end
 
 	LOG("OPTIONS")
-	dump(ScenarioInfo.Options)
 	LOG("ONPOPULATE END")
 end
 
@@ -326,9 +325,13 @@ function InitializeSupremeRiskArmies()
             --    GetArmyBrain(strArmy):InitializeSkirmishSystems()
             --end
 
-            --if strArmy = 'ARMY_7' then -- give enemy civilians darker color
-            --    SetArmyColor(strArmy, 255, 48, 48) -- non-player red color for enemy civs
-            --end
+			-- give enemy civilians colors
+            if strArmy == 'ARMY_7' then 
+                SetArmyColor(strArmy, 255, 48, 48) -- dark red
+            end
+            if strArmy == 'ARMY_8' then 
+                SetArmyColor(strArmy, 255, 255, 48) -- yellow
+            end
 
             ----[ irumsey                                                         ]--
             ----[ Temporary defaults.  Make sure some fighting will break out.    ]--
@@ -433,7 +436,7 @@ end
 
 function setPlayerRestrictions( index, SRUnitsToBuild) 
 		
-		dump(categories)
+		--dump(categories)
 		--Building Restrictions
 		ScenarioFramework.AddRestriction(index, categories.ALLUNITS)
 		ScenarioFramework.RemoveRestriction(index, categories[units.primary]) -- mech marine
@@ -548,8 +551,8 @@ function initPlayers()
 		local tblData = Scenario.Armies[name]
 		dump(tblData)
 		
-		-- spawn ARMY_6, 7 as 3rd player if only two players are in the game
-		if tblData.SRInit or ((i == 2 or i == 3) and not tblData.SRInit) then
+		-- spawn ARMY_7, 8 as 3rd player if only one or two players are in the game
+		if tblData.personality == 'SRPlayer' or ((i == 2 or i == 3) and tblData.personality != 'SRPlayer') then
 			--armies[name] = i
 			
 			local army = i;
@@ -1314,6 +1317,7 @@ function checkCountryOwnership()
 							-- HOME BASES (Have units stay there for a while, and only move one territory per round), init at the beginning of the round
 							if not unit.homebase or roundTotalTime == 0 or (cdata.conqueredThisRound and ScenarioInfo.Options.SRUnitMovement == "agro") then
 								unit.homebase = cdata
+								LOG("assigning -- "..ScenarioInfo.Options.SRUnitMovement.." --from "..cdata.name)
 							end
 							
 							if cdata.president != unit then
@@ -1326,7 +1330,7 @@ function checkCountryOwnership()
 									unit:SetImmobile(false)
 								else
 	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-									unit:SetSpeedMult(0.2) -- dont move a lot anymore
+									unit:SetSpeedMult(0.1) -- dont move a lot anymore
 									LOG("RESTING -- "..ScenarioInfo.Options.SRUnitMovement)
 									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
@@ -1481,17 +1485,15 @@ function checkEndOfRound()
 		beginNextRound()
 	end
 	
-	displayRoundCountdown(0)
+	if math.floor(roundIdleSeconds/2)*2 == roundIdleSeconds then
+		displayRoundCountdown(1)
+	end
 	
 	if roundIdleSeconds == 10 then
 		local ileft = maxRoundIdleTime - roundIdleSeconds
 	
 		PrintText("Round "..roundnum.." - Liberate Territories to get more reinforcements.", 20, 'FFFFFFFF',ileft - 2,'centertop')
 	end
-
-	-- display after 5 seconds into each round
-	--if roundIdleSeconds == 5  then displayRoundCountdown(5) end
-	--if roundIdleSeconds == 15 then displayRoundCountdown(2) end
 end
 
 function displayRoundCountdown(staytime)
@@ -1503,7 +1505,13 @@ function displayRoundCountdown(staytime)
 	-- prefix seconds
 	if (ileft < 10) then ileft = "0"..ileft end
 	
-	PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
+	local player = players[GetFocusArmy()]
+
+	if player.acu.SRUnitsToBuild > 0 and ScenarioInfo.Options.SRBuildMode == 'expire' then
+		PrintText(player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 20, '00FFDDDD', staytime, 'centertop') 
+	else
+		PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
+	end
 end
 
 function displayMissions()
@@ -1512,7 +1520,7 @@ function displayMissions()
 	local missionText = mission:getText()
 	
 	PrintText('                                           ', 60,'FF0000FF', 999999,'centertop') -- to move text down
-	PrintText(missionText, 30, '00FF4040',999999,'centertop') 
+	PrintText('Mission: '..missionText, 30, '00FF5555',999999,'centertop') 
 	
 end
 
@@ -1524,13 +1532,12 @@ function displayRoundBegin()
 	local missionText = player.mission:getText()
 	
 	local objTitle = "Round "..roundnum..' - Reinforce your territories - you can build '..player.acu.SRUnitsToBuild..' units. '
-	if player.build then
-		if player.build.starting then
-			objTitle = objTitle..'(Initial Units)'
-		else
-			objTitle = objTitle..'('..player.build.total..' this round, '..player.build.ter..' from territories, '..player.build.cont..' from continents, '..player.build.bonus..' from wreckage)'
-		end
+	if not player.build or roundnum == 1 then
+		objTitle = objTitle..'(Initial Units)'
+	else
+		objTitle = objTitle..'('..player.build.total..' this round, '..player.build.ter..' from territories, '..player.build.cont..' from continents, '..player.build.bonus..' from wreckage)'
 	end
+	
 	PrintText(objTitle, 20, 'FFFFFFFF', 9, 'centertop')
 		
 end
@@ -1630,38 +1637,36 @@ function beginNextRound()
 end
 
 function checkPlayerDeath(player)
--- this is buggy
-	if player.empireSize == 0 then
+	if player.empireSize == 0 or player.killedByMission then
 		if not player.acu:IsDead() then 
 			player.acu:Kill() -- goodbye ACU
 		end
---		player.brain:OnDefeat()
+		player.brain:OnDefeat()
 	end
 end
 
 function checkPlayerWin(player)
 	LOG("checking win on "..player.mission:getText())
-	if player.mission:check() and not player.acu:IsDead() then
-		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',5,'center') 
+	if SRGameRunning and player.mission:check() and not player.acu:IsDead() then
+		SRGameRunning = false
+		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',500,'center') 
 
 		-- Kill all other units!
 		player.acu:SetIntelRadius('Vision', 2000)
-		continents = {} -- destroy countries to prevent respawns
+		--continents = {} -- destroy countries to prevent respawns
 		WaitSeconds(1)		
 		
-		for i, player in players do
-			player.brain.OnDefeat = player.brain.OnOrigDefeat -- restore defeat
-		end
-
-		local otherUnits = GetUnitsInRect(Rect(0,0,1024,1024))
-		for i, unit in otherUnits do
-			if not IsAlly(player.index, unit:GetArmy()) then
-				unit:Kill()
-				--player.brain:OnDefeat()
+		for i, otherplayer in players do
+			otherplayer.brain.OnDefeat = otherplayer.brain.OnOrigDefeat -- restore defeat
+			if otherplayer != player then
+				otherplayer.killedByMission = true
+				checkPlayerDeath(otherplayer)
 			end
-		end		
-
-		WaitSeconds(500)
+		end
+		
+		player.brain:OnVictory()
+		
+		--WaitSeconds(500)
 	end
 end
 
@@ -1689,7 +1694,7 @@ function updateSecondaryMissions()
 							15, 'FFEEFFEE',10,'center')
 				else 
 					if focusPlayer == lostPlayer then
-						local income = computeIncome(liberatorPlayer)
+						local income = computeIncome(lostPlayer)
 						PrintText('You lost '..c.name..' to '..liberatorPlayer.nickName,
 								24, 'FFFFAAAA',10,'center')
 						PrintText('Next round you will receive '..income.total..' units.',
@@ -1713,9 +1718,15 @@ function updateSecondaryMissions()
 			-- only do in own sim state, not for others (this doesnt desync!)
 			
 			-- warn player if he has still not built his units
-			if not player.acu:IsDead() and player.acu.SRUnitsToBuild > 0 and (roundIdleSeconds == 10 or roundIdleSeconds == 20) then
+			if ScenarioInfo.Options.SRBuildMode == 'expire' 
+				and not player.acu:IsDead() 
+				and player.acu.SRUnitsToBuild > 0 
+				and (roundIdleSeconds == 10 or roundIdleSeconds == 20) then
+
 				player.buildObjectiveWarn = true
-				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild..' units left to build, Sir.', 
+				--PrintText(player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 20, 'FFFFDDDD', staytime, 'centertop') 
+				local ileft = maxRoundIdleTime - roundIdleSeconds
+				local m1 = {{text = '<LOC E01_M01_060_010>You have '..player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 
 				vid = 'E01_EarthCom_M01_01131.sfd', bank = 'E01_VO', 
 				cue = 'E01_EarthCom_M01_01131', faction = 'UEF'}}
 				
@@ -1762,20 +1773,19 @@ end
 
 function checkEndOfGame()
 	for i, player in players do
-		checkPlayerDeath(player)
 		checkPlayerWin(player)
+		checkPlayerDeath(player)
 	end
 end
 
 function mainThread()
-
 	-- We are in the game!
 	displayMissions()
 	displayRoundBegin()
 
 	zoomOut()
 
-	while true do
+	while SRGameRunning do
 		checkCountryOwnership()
 		
 		checkEndOfRound()
@@ -1788,7 +1798,7 @@ function mainThread()
 end
 
 function jobsThread()
-	while true do
+	while SRGameRunning do
 		reassignFactories()
 		checkTeleportationZones()
 		controlAIPlayers()
