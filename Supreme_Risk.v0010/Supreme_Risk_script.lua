@@ -1644,6 +1644,7 @@ end
 function checkPlayerWin(player)
 	LOG("checking win on "..player.mission:getText())
 	if SRGameRunning and player.mission:check() and not player.acu:IsDead() then
+		SRGameRunning = false
 		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',500,'center') 
 
 		-- Kill all other units!
@@ -1654,11 +1655,11 @@ function checkPlayerWin(player)
 		for i, otherplayer in players do
 			otherplayer.brain.OnDefeat = otherplayer.brain.OnOrigDefeat -- restore defeat
 			if otherplayer != player then
-				player.killedByMission = true
+				otherplayer.killedByMission = true
+				checkPlayerDeath(otherplayer)
 			end
 		end
 		
-		SRGameRunning = false
 		player.brain:OnVictory()
 		
 		--WaitSeconds(500)
@@ -1689,7 +1690,7 @@ function updateSecondaryMissions()
 							15, 'FFEEFFEE',10,'center')
 				else 
 					if focusPlayer == lostPlayer then
-						local income = computeIncome(liberatorPlayer)
+						local income = computeIncome(lostPlayer)
 						PrintText('You lost '..c.name..' to '..liberatorPlayer.nickName,
 								24, 'FFFFAAAA',10,'center')
 						PrintText('Next round you will receive '..income.total..' units.',
@@ -1774,7 +1775,6 @@ function checkEndOfGame()
 end
 
 function mainThread()
-	SRGameRunning = true
 	-- We are in the game!
 	displayMissions()
 	displayRoundBegin()
