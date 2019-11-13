@@ -20,9 +20,8 @@ I first wrote this Map back in 2007, and recently picked it up again to make it 
 
 ### Gameplay
 
-* Gameplay is split into 30 second rounds
-* Building units will restart the round timer
-* Players have 30 seconds to liberate neighbouring countries
+* Gameplay is split into rounds (10 to 60 seconds depending on game settings) 
+* Players can reinforce territories, defend and liberate neighbouring countries
 * Standard Risk rules apply when determining victories, and new units to be placed
 
 * Options available in the game settings
