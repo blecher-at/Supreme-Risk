@@ -1317,7 +1317,7 @@ function checkCountryOwnership()
 							-- HOME BASES (Have units stay there for a while, and only move one territory per round), init at the beginning of the round
 							if not unit.homebase or roundTotalTime == 0 or (cdata.conqueredThisRound and ScenarioInfo.Options.SRUnitMovement == "agro") then
 								unit.homebase = cdata
-								LOG("assigning -- "..ScenarioInfo.Options.SRUnitMovement.." --from "..cdata.name)
+								--LOG("assigning -- "..ScenarioInfo.Options.SRUnitMovement.." --from "..cdata.name)
 							end
 							
 							if cdata.president != unit then
@@ -1331,7 +1331,7 @@ function checkCountryOwnership()
 								else
 	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
 									unit:SetSpeedMult(0.1) -- dont move a lot anymore
-									LOG("RESTING -- "..ScenarioInfo.Options.SRUnitMovement)
+									--LOG("RESTING -- "..ScenarioInfo.Options.SRUnitMovement)
 									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
 							end
@@ -1507,7 +1507,7 @@ function displayRoundCountdown(staytime)
 	
 	local player = players[GetFocusArmy()]
 
-	if player.acu.SRUnitsToBuild > 0 and ScenarioInfo.Options.SRBuildMode == 'expire' then
+	if player.acu and player.acu.SRUnitsToBuild > 0 and ScenarioInfo.Options.SRBuildMode == 'expire' then
 		PrintText(player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 20, '00FFDDDD', staytime, 'centertop') 
 	else
 		PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
@@ -1515,20 +1515,29 @@ function displayRoundCountdown(staytime)
 end
 
 function displayMissions()
+	PrintText('                                           ', 60,'FF0000FF', 999999,'centertop') -- to move text down
   
 	local mission = players[GetFocusArmy()].mission
-	local missionText = mission:getText()
+	if mission then
+		local missionText = mission:getText()
 	
-	PrintText('                                           ', 60,'FF0000FF', 999999,'centertop') -- to move text down
-	PrintText('Mission: '..missionText, 30, '00FF5555',999999,'centertop') 
+		PrintText('Mission: '..missionText, 30, '00FF5555',999999,'centertop') 
+	else
+		LOG("OBSERVER: "..GetFocusArmy())
+		dump(players[GetFocusArmy()])
+	end
 	
 end
 
 function displayRoundBegin()
 
 	local player = players[GetFocusArmy()]
+	if not player.mission then return end
+
 	-- todo: replace with real timer
 	local ileft = maxRoundIdleTime + 2
+	
+	
 	local missionText = player.mission:getText()
 	
 	local objTitle = "Round "..roundnum..' - Reinforce your territories - you can build '..player.acu.SRUnitsToBuild..' units. '
