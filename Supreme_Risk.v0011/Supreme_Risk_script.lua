@@ -1307,6 +1307,7 @@ function checkCountryOwnership()
 							unit:SetSpeedMult(1.75) -- reset for successful liberators
 							unit:SetAccMult(1.75)
 							unit:SetTurnMult(2)
+							unit:SetImmobile(false)
 							
 							weapon:ChangeRateOfFire(2)
 --						weapon:SetTurretYawSpeed(300)
@@ -1329,8 +1330,8 @@ function checkCountryOwnership()
 									unit.isResting = false;
 									unit:SetImmobile(false)
 								else
-	--								unit:SetImmobile(true) -- unit:SetSpeedMult(0.4) -- have it stay here for a while		
-									unit:SetSpeedMult(0.1) -- dont move a lot anymore
+									unit:SetImmobile(true) -- have it stay here for a while		
+									--unit:SetSpeedMult(0.1) -- dont move a lot anymore
 									--LOG("RESTING -- "..ScenarioInfo.Options.SRUnitMovement)
 									unit:SetCustomName("Unit retreating from "..unit.homebase.name.." paused. Will move again next round.") --Citizen of "..cdata.name)
 								end
