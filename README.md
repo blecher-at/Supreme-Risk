@@ -25,7 +25,7 @@ this should not be needed for players, I update the version in the vault regular
 If you make changes to the map, however: 
 
 * Install FA (see above)
-* Copy the folder Supreme_Risk.v0012 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\
+* Copy the folder supreme_risk.v0012 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\
 
 ### Gameplay
 

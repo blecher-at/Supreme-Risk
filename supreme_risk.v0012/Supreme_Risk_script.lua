@@ -84,6 +84,13 @@ function meter(m)
 	return m*0.0512
 end
 
+function safe(fref) 
+	local rc, msg = pcall(fref)
+	if not rc then
+		LOG(msg)
+	end
+end
+
 function Pos(x,y,z)
 	if z == nil then z = 128 end
 	local p = {}
@@ -1373,15 +1380,16 @@ function checkCountryOwnership()
 			if enemyUnits > 0 then
 				LOG(cdata.name.." has enemies - destroying factory")
 				-- kill factory
-				if cdata.factory then
-					setFactoryName(cdata,cdata.name..": "..friendlyUnits.." attacked by "..enemyUnits)
-					cdata.factory:SetCanBeKilled(true)
-					cdata.factory:Kill()
-					cdata.factory=nil
-				end
 				cdata.isAttacked = true
 				cdata.attacker = enemyArmy
 				cdata.defender = cdata.owner
+				
+				if cdata.factory then
+					cdata.factory:SetCanBeKilled(true)
+					safe(function() cdata.factory:Kill() end) -- fix race condition "game object has been destroyed error" if fac is already gone
+					cdata.factory=nil
+					
+				end
 			else
 				setFactoryName(cdata,cdata.name..": "..friendlyUnits)
 				cdata.isAttacked = false
@@ -1796,12 +1804,12 @@ function mainThread()
 	zoomOut()
 
 	while SRGameRunning do
-		checkCountryOwnership()
+		safe(checkCountryOwnership)
 		
-		checkEndOfRound()
-		checkEndOfGame()
+		safe(checkEndOfRound)
+		safe(checkEndOfGame)
 		
-		updateSecondaryMissions()
+		safe(updateSecondaryMissions)
 --		updateScore()
 		WaitSeconds(1)
 	end
