@@ -191,7 +191,7 @@ local continents =
 			{name='Central Europe',			pos = {x = 489, y = 390}},
 			{name='Western Europe',			pos = {x = 460, y = 416}},
 			{name='Eastern Europe',			pos = {x = 540, y = 413}},
-			{name='Great Britain',			pos = {x = 448, y = 372}},
+			{name='Great Britain',			pos = {x = 455, y = 377}},
 			{name='Scandinavia',			pos = {x = 505, y = 345}},
 			{name='Ukraine',				pos = {x = 570, y = 328}},
 			
@@ -1498,7 +1498,7 @@ function checkEndOfRound()
 		displayRoundCountdown(1)
 	end
 	
-	if roundIdleSeconds == 10 then
+	if roundIdleSeconds == 10 and GetFocusArmy() > 0 then
 		local ileft = maxRoundIdleTime - roundIdleSeconds
 	
 		PrintText("Round "..roundnum.." - Liberate Territories to get more reinforcements.", 20, 'FFFFFFFF',ileft - 2,'centertop')
@@ -1516,10 +1516,13 @@ function displayRoundCountdown(staytime)
 	
 	local player = players[GetFocusArmy()]
 
-	if player.acu and player.acu.SRUnitsToBuild > 0 and ScenarioInfo.Options.SRBuildMode == 'expire' then
-		PrintText(player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 20, '00FFDDDD', staytime, 'centertop') 
-	else
-		PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
+	-- only show timer if not observer
+	if player.acu then
+		if player.acu.SRUnitsToBuild > 0 and ScenarioInfo.Options.SRBuildMode == 'expire' then
+			PrintText(player.acu.SRUnitsToBuild.." unbuilt units, will be lost in 0:"..ileft.."", 20, '00FFDDDD', staytime, 'centertop') 
+		else
+			PrintText("Reinforcements arrive in 0:"..ileft.."", 20, '00DDDDDD', staytime, 'centertop') 
+		end
 	end
 end
 
@@ -1541,7 +1544,11 @@ end
 function displayRoundBegin()
 
 	local player = players[GetFocusArmy()]
-	if not player.mission then return end
+	if not player.mission then -- observer
+		local objTitle = "Round "..roundnum
+		PrintText(objTitle, 20, 'FFFFFFFF', 9, 'centertop')
+		return 
+	end
 
 	-- todo: replace with real timer
 	local ileft = maxRoundIdleTime + 2
