@@ -277,6 +277,7 @@ function OnPopulate()
 	
 	-- prevent ACU warpin animation
 	ScenarioInfo.Options.PrebuiltUnits = nil
+	ScenarioInfo.Options.OriginalVictory = ScenarioInfo.Options.Victory
 	ScenarioInfo.Options.Victory = 'sandbox'
 
 	if ScenarioInfo.Options.SRRoundLength then
@@ -652,7 +653,7 @@ function initPlayerResources()
 end
 
 function initMissions()
-	if ScenarioInfo.Options.Victory == "eradication" then
+	if ScenarioInfo.Options.OriginalVictory == "eradication" then
 		for i, player in players do
 			player.mission = getMissionWD()
 			player.mission.owner = player
@@ -1663,29 +1664,24 @@ end
 
 function checkPlayerDeath(player)
 	if player.empireSize == 0 or player.killedByMission then
-		LOG(player.brain.Nickname.." died: "..player.mission:getText()) 
+		LOG(player.brain.Nickname.." died, and failed mission: "..player.mission:getText()) 
 		if not player.acu:IsDead() then 
 			player.acu:Kill() -- goodbye ACU
 		end
-		player.brain:OnDefeat()
+		player.brain:OnOrigDefeat()
 	end
 end
 
 function checkPlayerWin(player)
-	LOG("checking win on "..player.mission:getText())
+	LOG("checking if "..player.brain.Nickname.." won: "..player.mission:getText())
 	if SRGameRunning and player.mission:check() and not player.acu:IsDead() then
 		SRGameRunning = false
 		LOG(player.brain.Nickname.." won: "..player.mission:getText()) 
 	
 		PrintText(player.brain.Nickname.." won: "..player.mission:getText(),20,'FFFFFFFF',500,'center') 
 
-		-- Kill all other units!
-		--player.acu:SetIntelRadius('Vision', 2000)
-		--continents = {} -- destroy countries to prevent respawns
-		--WaitSeconds(1)		
-		
+		-- Kill all other players!
 		for i, otherplayer in players do
-			otherplayer.brain.OnDefeat = otherplayer.brain.OnOrigDefeat -- restore defeat
 			if otherplayer != player then
 				otherplayer.killedByMission = true
 				checkPlayerDeath(otherplayer)
@@ -1802,6 +1798,9 @@ end
 function checkEndOfGame()
 	for i, player in players do
 		checkPlayerWin(player)
+	end
+
+	for i, player in players do
 		checkPlayerDeath(player)
 	end
 end
