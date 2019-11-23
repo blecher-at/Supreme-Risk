@@ -49,6 +49,8 @@ If you make changes to the map, however:
    * If your units appear stuck (don't move), and hovering over them says "resting", they are paused as per RISK game rules where you can only move units from one of your owned territories to another owned territoriy per round. This can be changed in the game options to "free" for free movement, or "restricted" to have this restriction also for liberating (for even slower games)
 * I don't like the missions, can I set up the game to allow conquering the whole world?
    * In the Game Lobby, set the "Victory Condition" to "Annihilation" ("Assassination" is the default and will generate the usual missions)
+* How does the bonus units wreckage work?
+   * At the bottom of the map, you have an "Engineering Station" building, which can reclaim the wreckage there. You need 3 wreckages of the same type, or three different types. Select the station and then right click on a wreck to receive the bonus units.
 
 ## Replays
 37 Minutes, T3 Units, pretty much shows all the features of the game
