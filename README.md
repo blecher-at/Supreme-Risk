@@ -40,17 +40,22 @@ If you make changes to the map, however:
   
 ### Gameplay FAQ
 * How do I build units?
-   * Each Factory has up to 3 different units on display, which will build 1, 5, or 10 units at once respectively. You can only build units up to the reinforcements per round limit.
+   * Each Factory has up to 3 different units on display, which will build 1, 5, or 10 units at once respectively. You can only build units up to the reinforcements per round limit. 
 * How do I know how many units I can place?
    The game will tell you in many ways:
-   * The mass income (+3) is the number of units you can place right now. Build them in the factories. 
+   * The mass income (+3) on the top-left of the screen is the number of units you can place right now. Build them in the factories. 
    * Every time you liberate a territory, or reclaim for extra units, the units you'll receive next round will be displayed in the center of the screen
 * Why are my units stuck?
-   * If your units appear stuck (don't move), and hovering over them says "resting", they are paused as per RISK game rules where you can only move units from one of your owned territories to another owned territoriy per round. This can be changed in the game options to "free" for free movement, or "restricted" to have this restriction also for liberating (for even slower games)
+   * If your units appear stuck (don't move), and hovering over them says "resting", they are paused as per RISK game rules where you can only move units from one of your owned territories to another owned territoriy once per round. This can be changed in the game options to "free" for free movement, or "restricted" to have this restriction also for liberating (for even slower games)
 * I don't like the missions, can I set up the game to allow conquering the whole world?
    * In the Game Lobby, set the "Victory Condition" to "Annihilation" ("Assassination" is the default and will generate the usual missions)
 * How does the bonus units wreckage work?
    * At the bottom of the map, you have an "Engineering Station" building, which can reclaim the wreckage there. You need 3 wreckages of the same type, or three different types. Select the station and then right click on a wreck to receive the bonus units.
+* Does the faction (uef, cybran, ...) I select in the lobby have any effect on the game?
+   * No, all players get the same units as per the "Unit Tiers" selection in the options
+* How can all players see the whole map all the time?
+   * Like in standard Supreme Commander, in the Game Lobby, set "Fog of War" to "explored"
+
 
 ## Replays
 37 Minutes, T3 Units, pretty much shows all the features of the game
