@@ -37,6 +37,25 @@ If you make changes to the map, however:
   * Choose tier of units to use (T1, T2, T3)
   * Lose or retain reinforcements
   * unit movement settings
+  
+### Gameplay FAQ
+* How do I build units?
+   * Each Factory has up to 3 different units on display, which will build 1, 5, or 10 units at once respectively. You can only build units up to the reinforcements per round limit.
+* How do I know how many units I can place?
+   The game will tell you in many ways:
+   * The mass income (+3) is the number of units you can place right now. Build them in the factories. 
+   * Every time you liberate a territory, or reclaim for extra units, the units you'll receive next round will be displayed in the center of the screen
+* Why are my units stuck?
+   * If your units appear stuck (don't move), and hovering over them says "resting", they are paused as per RISK game rules where you can only move units from one of your owned territories to another owned territoriy per round. This can be changed in the game options to "free" for free movement, or "restricted" to have this restriction also for liberating (for even slower games)
+* I don't like the missions, can I set up the game to allow conquering the whole world?
+   * In the Game Lobby, set the "Victory Condition" to "Annihilation" ("Assassination" is the default and will generate the usual missions)
+
+## Replays
+37 Minutes, T3 Units, pretty much shows all the features of the game
+https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10531732
+
+30 Minutes, Linus Tech Tips plays
+https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10558708
 
 ## Files
 
@@ -47,6 +66,10 @@ If you make changes to the map, however:
 ## Known Issues/Bugs
 
 - Please report bugs here on github or in the faf community forum https://forums.faforever.com/viewtopic.php?f=41&t=18368
+
+## ideas
+- Add an "airlift" unit (econoob)
+- Add more unit tiers simultaneously (todo: balancing)
 
 ## Links
 
