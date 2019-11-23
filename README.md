@@ -51,10 +51,12 @@ If you make changes to the map, however:
    * In the Game Lobby, set the "Victory Condition" to "Annihilation" ("Assassination" is the default and will generate the usual missions)
 * How does the bonus units wreckage work?
    * At the bottom of the map, you have an "Engineering Station" building, which can reclaim the wreckage there. You need 3 wreckages of the same type, or three different types. Select the station and then right click on a wreck to receive the bonus units.
-* Does the faction (uef, cybran, ...) have any effect on the game?
+* Does the faction (uef, cybran, ...) I select in the lobby have any effect on the game?
    * No, all players get the same units as per the "Unit Tiers" selection in the options
-   
-   
+* How can all players see the whole map all the time?
+   * Like in standard Supreme Commander, in the Game Lobby, set "Fog of War" to "explored"
+
+
 ## Replays
 37 Minutes, T3 Units, pretty much shows all the features of the game
 https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10531732
