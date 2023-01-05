@@ -66,7 +66,7 @@ https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10558708
 
 ## Files
 
-- Supreme_Risk.v0012 The latest version compatible with FAF
+- Supreme_Risk.v0015 The latest version compatible with FAF
 - Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
 
 
