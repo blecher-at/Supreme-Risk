@@ -16,7 +16,7 @@ END
 -- https://github.com/blecher-at/Supreme-Risk
 --
 -- Use at your own RISK and have lots of fun!
--- Version 10
+-- Version 15
 --
 -------------------------------------------------------------
 
@@ -27,10 +27,6 @@ local Factions = import('/lua/factions.lua').Factions
 
 --scenario utilities
 local Utilities = import('/lua/utilities.lua')
-
---interface utilities
-local UIUtil = import('/lua/ui/uiutil.lua')
---local gameParent = import('/lua/ui/game/gamemain.lua').GetGameParent()
 
 local executing = false
 local baseSizeMeters = 400;
