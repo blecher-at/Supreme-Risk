@@ -1,6 +1,6 @@
 ![Supreme Risk Banner](promo/signature3.jpg)
 
-# Supreme Risk
+# Supreme Risk Forever
 
 Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Alliance Forever, enabling rules from the board game "RISK"
 
@@ -10,13 +10,14 @@ Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Allianc
 ## History
 
 I first wrote this Map back in 2007, and recently picked it up again to make it compatible with modern FA.
+Last Update is in 2023 (Supreme Risk Forever), to make it compatible with the latest version of FAF
 
 ## How to Play
 ### Getting Started 
 
 * Install the Forged Alliance Forever Multiplayer client http://faforever.com/ 
 * You need a valid license of "Supreme Commander: Forged Alliance" (from steam or other sources)
-* Once in the client, go to "Vault" and search for "Supreme Risk". 
+* Once in the client, go to "Vault" and search for "Supreme Risk Forever". 
 * Click "Install" then "Create Game"
 
 ### Manual Installation
@@ -66,7 +67,8 @@ https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10558708
 
 ## Files
 
-- Supreme_Risk.v0012 The latest version compatible with FAF
+- supreme_risk_forever.v0001 The latest version. This is currently the one in the Vault
+- Supreme_Risk.v0015 The latest version compatible with FAF from 2019
 - Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
 
 
