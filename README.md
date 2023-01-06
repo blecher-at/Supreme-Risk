@@ -1,6 +1,6 @@
 ![Supreme Risk Banner](promo/signature3.jpg)
 
-# Supreme Risk
+# Supreme Risk Forever
 
 Supreme Risk is a Map for Supreme Commander and Supreme Commander Forged Alliance Forever, enabling rules from the board game "RISK"
 
