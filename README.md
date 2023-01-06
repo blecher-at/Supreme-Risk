@@ -26,7 +26,7 @@ this should not be needed for players, I update the version in the vault regular
 If you make changes to the map, however: 
 
 * Install FA (see above)
-* Copy the folder Supreme_Risk.v0012 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\
+* Copy the folder supreme_risk_forever.v0001 to %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\
 
 ### Gameplay
 
@@ -68,8 +68,9 @@ https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10558708
 ## Files
 
 - supreme_risk_forever.v0001 The latest version. This is currently the one in the Vault
-- Supreme_Risk.v0015 The latest version compatible with FAF from 2019
-- Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
+- for older versions see the legacy branches of this repository
+-- Supreme_Risk.v0015 The latest version compatible with FAF from 2019
+-- Supreme_Risk	The version compatible with Original SupCom from 2007 (no longer maintained)
 
 
 ## Known Issues/Bugs
@@ -85,8 +86,8 @@ https://content.faforever.com/faf/vault/replay_vault/replay.php?id=10558708
 - map editor logs: %APPDATA%\LocalLow\ozonexo3\FAF Map Editor
 - map editor wiki: https://wiki.faforever.com/index.php?title=FA_Forever_Map_Editor#Custom_resources
 
-- location of the map %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\supreme_risk.v0012
+- location of the map %USERPROFILE%\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\supreme_risk_forever.v0001
 
-- cp -R "$USERPROFILE\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\supreme_risk.v0012" .
+- cp -R "$USERPROFILE\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\maps\supreme_risk_forever.v0001" .
 
 - Start for testing C:\ProgramData\FAForever\bin\ForgedAlliance.exe /init init_faf.lua /nobugreport /log "C:\ProgramData\FAForever\logs\game1.log" /EnableDiskWatch
